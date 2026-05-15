@@ -1,4 +1,5 @@
 import { useEditStore } from '../../store/editStore';
+import { useLayerStore } from '../../store/layerStore';
 import type { EditTool } from '../../types/edit';
 
 const TOOLS: { id: EditTool; label: string; icon: string; shortcut: string }[] = [
@@ -12,7 +13,22 @@ export default function DrawToolbar() {
   const tool = useEditStore((s) => s.tool);
   const setTool = useEditStore((s) => s.setTool);
   const selectedFeatureId = useEditStore((s) => s.selectedFeatureId);
+  const selectedLayerId = useEditStore((s) => s.selectedLayerId);
   const clearSelection = useEditStore((s) => s.clearSelection);
+  const nodeEditMode = useEditStore((s) => s.nodeEditMode);
+  const setNodeEditMode = useEditStore((s) => s.setNodeEditMode);
+
+  // 判断选中要素是否支持节点编辑（线/面）
+  const layers = useLayerStore((s) => s.layers);
+  const selectedLayer = layers.find((l) => l.id === selectedLayerId);
+  const selectedFeature = selectedFeatureId != null
+    ? selectedLayer?.data.features.find(
+        (f) => f.id === selectedFeatureId || f.properties?._featureId === selectedFeatureId
+      )
+    : undefined;
+  const canEditNodes =
+    selectedFeature != null &&
+    (selectedFeature.geometry.type === 'LineString' || selectedFeature.geometry.type === 'Polygon');
 
   // Undo/Redo from zundo
   const undo = useEditStore.temporal.getState().undo;
@@ -48,6 +64,7 @@ export default function DrawToolbar() {
         ↪ 重做
       </button>
 
+      {/* 选中要素时才显示取消选中和节点编辑按钮 */}
       {selectedFeatureId && (
         <>
           <div className="toolbar-divider" />
@@ -58,6 +75,15 @@ export default function DrawToolbar() {
           >
             ✕ 取消选中
           </button>
+          {canEditNodes && (
+            <button
+              className={`toolbar-btn${nodeEditMode ? ' active' : ' danger'}`}
+              onClick={() => setNodeEditMode(!nodeEditMode)}
+              title={nodeEditMode ? '完成节点编辑' : '编辑节点（拖拽移动节点位置）'}
+            >
+              {nodeEditMode ? '✅ 完成编辑' : '✏️ 编辑节点'}
+            </button>
+          )}
         </>
       )}
     </>

@@ -87,6 +87,12 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
       const id = generateId();
       if (i === 0) firstId = id;
 
+      // 确保每个 feature 有用于选中的唯一标识
+      if (feat.id == null && !feat.properties?._featureId) {
+        if (!feat.properties) feat.properties = {};
+        feat.properties._featureId = `feat-${id}`;
+      }
+
       // 从 feature 属性中提取有意义的名称
       const props = feat.properties || {};
       const featureName =

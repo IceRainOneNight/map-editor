@@ -593,7 +593,7 @@ export default function MapView() {
             const fid = feat.id ?? feat.properties?._featureId;
             try {
               const features = map.queryRenderedFeatures(e.point, {
-                layers: [`layer-${lyr.id}`, `${lyr.id}-outline`, `${lyr.id}-line`, `${lyr.id}-point`],
+                layers: [`layer-${lyr.id}`, `layer-${lyr.id}-outline`, `layer-${lyr.id}-line`, `layer-${lyr.id}-point`],
               });
               const found = features.find((f: any) => (f.properties?._featureId || f.id) === fid);
               if (found) {

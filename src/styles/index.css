@@ -803,3 +803,127 @@ body,
   text-align: right;
   flex-shrink: 0;
 }
+
+/* ===== AttributePanel 选项卡样式 ===== */
+.attr-tabs {
+  display: flex;
+  border-bottom: 1px solid #4a4a4a;
+  flex-shrink: 0;
+}
+
+.attr-tab {
+  flex: 1;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #999;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.attr-tab:hover {
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.attr-tab.active {
+  color: #8cb82a;
+  border-bottom-color: #8cb82a;
+  background: rgba(140, 184, 42, 0.06);
+}
+
+.attr-tab-badge {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #666;
+  padding: 0 6px;
+  border-radius: 8px;
+  height: 16px;
+  line-height: 16px;
+}
+
+.attr-tab.active .attr-tab-badge {
+  background: rgba(140, 184, 42, 0.2);
+  color: #8cb82a;
+}
+
+/* 编辑选项卡 - 要素列表 */
+.attr-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.attr-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 12px;
+}
+
+.attr-feature-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.attr-feature-item.selected {
+  background: rgba(140, 184, 42, 0.12);
+  outline: 1px solid rgba(140, 184, 42, 0.4);
+}
+
+.attr-feature-item.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.attr-feature-item.disabled:hover {
+  background: none;
+}
+
+.attr-feature-type {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8cb82a;
+  background: rgba(140, 184, 42, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.attr-feature-item.disabled .attr-feature-type {
+  color: #666;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.attr-feature-name {
+  flex: 1;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attr-feature-item.disabled .attr-feature-name {
+  color: #666;
+}
+
+.attr-feature-check {
+  flex-shrink: 0;
+  color: #8cb82a;
+  font-size: 13px;
+  font-weight: 700;
+}

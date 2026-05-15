@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLayerStore } from '../../store/layerStore';
+import { useEditStore } from '../../store/editStore';
 import { useBasemapStore } from '../../store/basemapStore';
 import LayerItem from './LayerItem';
 import BasemapLayerItem from './BasemapLayerItem';
@@ -28,6 +29,7 @@ export default function LayerPanel() {
   const layers = useLayerStore((s) => s.layers);
   const activeLayerId = useLayerStore((s) => s.activeLayerId);
   const setActiveLayer = useLayerStore((s) => s.setActiveLayer);
+  const clearSelection = useEditStore((s) => s.clearSelection);
   const basemapLayers = useBasemapStore((s) => s.basemapLayers);
   const addBasemapLayer = useBasemapStore((s) => s.addBasemapLayer);
 
@@ -119,9 +121,12 @@ export default function LayerPanel() {
             key={layer.id}
             layer={layer}
             isActive={layer.id === activeLayerId}
-            onSelect={() =>
-              setActiveLayer(layer.id === activeLayerId ? null : layer.id)
-            }
+            onSelect={() => {
+              const newId = layer.id === activeLayerId ? null : layer.id;
+              setActiveLayer(newId);
+              // 切换图层时清除要素选中，面板回到图层模式
+              if (newId) clearSelection();
+            }}
           />
         ))}
       </div>

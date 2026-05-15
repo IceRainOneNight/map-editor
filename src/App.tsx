@@ -3,7 +3,9 @@ import Toolbar from './components/toolbar/Toolbar';
 import MapView from './components/map/MapView';
 import LayerPanel from './components/layers/LayerPanel';
 import AttributePanel from './components/editing/AttributePanel';
+import TimelinePanel from './components/timeline/TimelinePanel';
 import './styles/index.css';
+import './styles/timeline.css';
 
 class ErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -59,6 +61,7 @@ export default function App() {
         </div>
         <AttributePanel />
       </div>
+      <TimelinePanel />
     </div>
   );
 }

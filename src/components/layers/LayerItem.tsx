@@ -17,6 +17,11 @@ export default function LayerItem({ layer, isActive, onSelect }: Props) {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(layer.name);
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('layerId', layer.id);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
   const handleNameCommit = () => {
     const trimmed = nameInput.trim();
     if (trimmed && trimmed !== layer.name) {
@@ -31,6 +36,8 @@ export default function LayerItem({ layer, isActive, onSelect }: Props) {
     <div
       className={`layer-item${isActive ? ' active' : ''}`}
       onClick={onSelect}
+      draggable
+      onDragStart={handleDragStart}
     >
       <div className="layer-item-left">
         <button

@@ -171,7 +171,7 @@ export default function TimelinePanel() {
   // ====== 同步播放头位置 ======
   const syncPlayheadPosition = useCallback(
     (time: number) => {
-      const x = time * pxPerSec;
+      const x = 160 + time * pxPerSec;
       if (playheadRef.current) {
         playheadRef.current.style.transform = `translateX(${x}px)`;
       }
@@ -212,7 +212,7 @@ export default function TimelinePanel() {
     (e: React.MouseEvent) => {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const scrollL = (e.currentTarget as HTMLElement).scrollLeft || 0;
-      const x = e.clientX - rect.left + scrollL;
+      const x = e.clientX - rect.left + scrollL - 160;
         const time = x / pxPerSec;
         seek(time);
         syncPlayheadPosition(time);
@@ -237,7 +237,7 @@ export default function TimelinePanel() {
       if (!isDraggingHead.current || !rulerRef.current) return;
       const rect = rulerRef.current.getBoundingClientRect();
       const scrollLeft = rulerRef.current.scrollLeft;
-      const x = e.clientX - rect.left + scrollLeft;
+      const x = e.clientX - rect.left + scrollLeft - 160;
       const time = Math.max(0, Math.min(x / pxPerSec, duration));
       seek(time);
       syncPlayheadPosition(time);
@@ -547,6 +547,7 @@ export default function TimelinePanel() {
         >
           {/* ====== 时间标尺 ====== */
           }<div className="tl-ruler" ref={rulerRef} onMouseDown={handleRulerMouseDown}>
+            <div className="tl-ruler-label" />
             <div className="tl-ruler-inner" style={{ width: contentWidth }}>
               {rulerTicks.map((tick) => (
                 <div
@@ -807,7 +808,7 @@ export default function TimelinePanel() {
             className="tl-playhead"
             ref={playheadRef}
             style={{
-              transform: `translateX(${currentTime * pxPerSec}px)`,
+              transform: `translateX(${160 + currentTime * pxPerSec}px)`,
               position: 'absolute',
               top: 0,
               bottom: 28,

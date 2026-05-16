@@ -169,10 +169,17 @@
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
+  display: flex;
 }
 
 .tl-ruler::-webkit-scrollbar {
   display: none;
+}
+
+.tl-ruler-label {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid #3a3a3a;
 }
 
 .tl-ruler-inner {

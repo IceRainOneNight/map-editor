@@ -59,6 +59,20 @@ export default function TimelinePanel() {
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
+  // ====== 标尺和轨道区滚动同步 ======
+  useEffect(() => {
+    const trackArea = trackAreaRef.current;
+    const ruler = rulerRef.current;
+    if (!trackArea || !ruler) return;
+
+    const onScroll = () => {
+      ruler.scrollLeft = trackArea.scrollLeft;
+    };
+
+    trackArea.addEventListener('scroll', onScroll);
+    return () => trackArea.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Pixels per second
   const pxPerSec = zoom;
 

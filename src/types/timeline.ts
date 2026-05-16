@@ -133,7 +133,7 @@ export interface InterpolatedTextState {
 export interface InterpolatedPathState {
   /** 标记点当前位置（经纬度） */
   markerPosition: [number, number];
-  /** 已绘制路径进度 (0~1) */
+  /** 已绘制路径进度 (0~1)，相对于完整路径 */
   drawProgress: number;
   /** 完整路径坐标 */
   coordinates: [number, number][];
@@ -145,6 +145,10 @@ export interface InterpolatedPathState {
   animType: 'marker' | 'draw' | 'both';
   /** 箭头旋转角度（度） */
   arrowAngle: number;
+  /** 子路径起点进度 (0~1)，对完全部路径 */
+  startProgress: number;
+  /** 子路径终点进度 (0~1)，相对于完整路径 */
+  endProgress: number;
 }
 
 /** 时间轴总状态 */

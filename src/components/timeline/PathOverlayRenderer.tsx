@@ -3,6 +3,55 @@ import { useTimelineStore } from '../../store/timelineStore';
 import { getStateAtTime } from '../../utils/timeline/interpolation';
 import { getMapRef } from '../../store/mapRef';
 import { interpolatePathPosition, slicePathTo } from '../../utils/timeline/path';
+
+/** 在两个进度之间截取路径坐标 */
+function sliceBetween(
+  coords: [number, number][],
+  startProgress: number,
+  endProgress: number
+): [number, number][] {
+  if (coords.length < 2) return coords;
+  if (endProgress <= startProgress) return [interpolatePathPosition(coords, startProgress)];
+  if (startProgress <= 0 && endProgress >= 1) return [...coords];
+  const startCoord = interpolatePathPosition(coords, startProgress);
+  const endCoord = interpolatePathPosition(coords, endProgress);
+  const result: [number, number][] = [startCoord];
+
+  // 计算每段的累计长度
+  const segLengths: number[] = [];
+  let totalLength = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [x1, y1] = coords[i];
+    const [x2, y2] = coords[i + 1];
+    const d = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    segLengths.push(d);
+    totalLength += d;
+  }
+
+  const startDist = startProgress * totalLength;
+  const endDist = endProgress * totalLength;
+  let acc = 0;
+
+  for (let i = 0; i < segLengths.length; i++) {
+    const segEnd = acc + segLengths[i];
+    // 如果线段在目标区间内，添加中间节点
+    if (segEnd > startDist && acc < endDist) {
+      const coordBefore = endDist <= segEnd || i === 0 ? coords[i + 1] : coords[i];
+      if (i > 0 || segLengths[0] > 0) {
+        // 不是起点或不是第一段的开始
+        result.push(coordBefore);
+      }
+    }
+    acc = segEnd;
+  }
+
+  // 确保终点在列表末尾
+  if (result[result.length - 1] !== endCoord) {
+    result.push(endCoord);
+  }
+
+  return result;
+}
 import type { InterpolatedPathState } from '../../types/timeline';
 
 export default function PathOverlayRenderer() {
@@ -55,23 +104,27 @@ export default function PathOverlayRenderer() {
       for (const p of paths) {
         if (!p.coordinates || p.coordinates.length < 2) continue;
 
-        // 绘制完整路径（灰色虚线）
-        ctx.beginPath();
-        const startFull = mapInstance.project(p.coordinates[0]);
-        ctx.moveTo(startFull.x, startFull.y);
-        for (let i = 1; i < p.coordinates.length; i++) {
-          const pt = mapInstance.project(p.coordinates[i]);
-          ctx.lineTo(pt.x, pt.y);
+        // 绘制子路径（起点→终点 灰色虚线）
+        const subPathCoords = sliceBetween(p.coordinates, p.startProgress, p.endProgress);
+        if (subPathCoords.length >= 2) {
+          ctx.beginPath();
+          const sp = mapInstance.project(subPathCoords[0]);
+          ctx.moveTo(sp.x, sp.y);
+          for (let i = 1; i < subPathCoords.length; i++) {
+            const pt = mapInstance.project(subPathCoords[i]);
+            ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = p.lineWidth * 0.5;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.lineWidth = p.lineWidth * 0.5;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
 
-        // 绘制已画部分（实线）
-        if (p.drawProgress > 0 && (p.animType === 'draw' || p.animType === 'both')) {
-          const drawnCoords = slicePathTo(p.coordinates, p.drawProgress);
+        // 绘制已动画部分（从起点到当前进度 实线）
+        const animProgress = p.drawProgress;
+        if (animProgress > p.startProgress && (p.animType === 'draw' || p.animType === 'both')) {
+          const drawnCoords = sliceBetween(p.coordinates, p.startProgress, animProgress);
           if (drawnCoords.length >= 2) {
             ctx.beginPath();
             const ds = mapInstance.project(drawnCoords[0]);

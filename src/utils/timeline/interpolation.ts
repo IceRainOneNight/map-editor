@@ -188,7 +188,7 @@ export function getStateAtTime(
 
       pathStates.push({
         markerPosition: markerPos,
-        drawProgress: clipProgress,
+        drawProgress: subProgress,
         coordinates: pd.coordinates,
         markerColor: pd.markerColor,
         markerSize: pd.markerSize,
@@ -197,6 +197,8 @@ export function getStateAtTime(
         lineWidth: pd.lineWidth,
         animType: pd.animType,
         arrowAngle,
+        startProgress: pd.startProgress,
+        endProgress: pd.endProgress,
       });
     }
   }

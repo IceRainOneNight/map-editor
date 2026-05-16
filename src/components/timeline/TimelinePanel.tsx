@@ -211,11 +211,11 @@ export default function TimelinePanel() {
   const handleRulerClick = useCallback(
     (e: React.MouseEvent) => {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const x = e.clientX - rect.left + (trackAreaRef.current?.scrollLeft || 0);
+      const scrollL = (e.currentTarget as HTMLElement).scrollLeft || 0;
+      const x = e.clientX - rect.left + scrollL;
         const time = x / pxPerSec;
         seek(time);
         syncPlayheadPosition(time);
-        // 同步音频跳转
         syncAudioSeek(time);
     },
     [pxPerSec, seek, syncPlayheadPosition, syncAudioSeek]
@@ -234,9 +234,9 @@ export default function TimelinePanel() {
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      if (!isDraggingHead.current || !rulerRef.current || !trackAreaRef.current) return;
+      if (!isDraggingHead.current || !rulerRef.current) return;
       const rect = rulerRef.current.getBoundingClientRect();
-      const scrollLeft = trackAreaRef.current.scrollLeft;
+      const scrollLeft = rulerRef.current.scrollLeft;
       const x = e.clientX - rect.left + scrollLeft;
       const time = Math.max(0, Math.min(x / pxPerSec, duration));
       seek(time);
@@ -545,8 +545,8 @@ export default function TimelinePanel() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {/* ====== 时间标尺 ====== */}
-          <div className="tl-ruler" ref={rulerRef} onMouseDown={handleRulerMouseDown}>
+          {/* ====== 时间标尺 ====== */
+          }<div className="tl-ruler" ref={rulerRef} onMouseDown={handleRulerMouseDown}>
             <div className="tl-ruler-inner" style={{ width: contentWidth }}>
               {rulerTicks.map((tick) => (
                 <div
@@ -560,12 +560,6 @@ export default function TimelinePanel() {
                   )}
                 </div>
               ))}
-              {/* 播放头 */}
-              <div
-                className="tl-playhead"
-                ref={playheadRef}
-                style={{ transform: `translateX(${currentTime * pxPerSec}px)` }}
-              />
             </div>
           </div>
 
@@ -807,6 +801,19 @@ export default function TimelinePanel() {
               <span className="tl-zoom-label">＋</span>
             </div>
           </div>
+
+          {/* 播放头（贯穿标尺和轨道） */}
+          <div
+            className="tl-playhead"
+            ref={playheadRef}
+            style={{
+              transform: `translateX(${currentTime * pxPerSec}px)`,
+              position: 'absolute',
+              top: 0,
+              bottom: 28,
+            }}
+          />
+
         </div>
       )}
 

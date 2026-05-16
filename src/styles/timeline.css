@@ -162,11 +162,17 @@
 /* ===== Ruler ===== */
 .tl-ruler {
   height: 28px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border-bottom: 1px solid #3a3a3a;
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
+}
+
+.tl-ruler::-webkit-scrollbar {
+  display: none;
 }
 
 .tl-ruler-inner {
@@ -208,11 +214,7 @@
 
 /* ===== Playhead ===== */
 .tl-playhead {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 2px;
-  height: 100%;
   background: #ff4444;
   z-index: 20;
   pointer-events: none;

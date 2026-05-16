@@ -601,23 +601,6 @@ export default function MapView() {
       };
       updateLayerData(activeId, updated);
       cancelDraw();
-
-      // 完成绘制后自动新建图层供下次绘制
-      const { addLayer: createLayer, setActiveLayer: activateLayer } = useLayerStore.getState();
-      const toolNames: Record<string, string> = {
-        line: '线图层',
-        polygon: '面图层',
-      };
-      // 检查当前激活图层是否已经是空的绘制图层，如果是则重用
-      const currentLayers = useLayerStore.getState().layers;
-      const currActive = currentLayers.find((l) => l.id === activeId);
-      if (!currActive || currActive.data.features.length > 0) {
-        const newId = createLayer({
-          name: `${toolNames[curTool]}-${Date.now() % 10000}`,
-          data: { type: 'FeatureCollection', features: [] },
-        });
-        activateLayer(newId);
-      }
     };
 
     const onMapClick = (e: maplibregl.MapMouseEvent) => {
@@ -799,6 +782,21 @@ export default function MapView() {
     map.on('style.load', updateDraw);
     return () => { map.off('style.load', updateDraw); };
   }, [drawState, drawCoords]);
+
+  // ---- 工具切换时清理绘制临时层 ----
+  const prevToolForCleanupRef = useRef(tool);
+  useEffect(() => {
+    if (prevToolForCleanupRef.current !== tool && !(tool === 'point' || tool === 'line' || tool === 'polygon')) {
+      // 切换到非绘制工具时强制清理绿色临时线
+      const map = mapRef.current;
+      if (map && map.isStyleLoaded()) {
+        try { map.removeLayer('draw-temp-line'); } catch {}
+        try { map.removeLayer('draw-temp-point'); } catch {}
+        try { map.removeSource('draw-temp'); } catch {}
+      }
+    }
+    prevToolForCleanupRef.current = tool;
+  }, [tool]);
 
   // ---- 光标样式 ----
   useEffect(() => {

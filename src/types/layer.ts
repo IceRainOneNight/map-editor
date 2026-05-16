@@ -9,6 +9,15 @@ export type GeometryType = 'Point' | 'LineString' | 'Polygon' | 'MultiPoint' | '
 /** 线段样式 */
 export type LineStyle = 'solid' | 'dashed' | 'dash-dot';
 
+/** 图层分组 */
+export interface LayerGroup {
+  id: string;
+  name: string;
+  collapsed: boolean;
+  layerIds: string[];
+  order: number;
+}
+
 /** LineStyle → MapLibre line-dasharray 映射 */
 export const LINE_STYLE_DASHARRAY: Record<LineStyle, number[]> = {
   solid: [],

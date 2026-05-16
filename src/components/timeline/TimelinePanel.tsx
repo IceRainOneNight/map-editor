@@ -653,9 +653,16 @@ export default function TimelinePanel() {
                             key={kf.id}
                             className="tl-keyframe"
                             style={{ left: kf.time * pxPerSec - 6 }}
-                            title={`${formatTime(kf.time)}: (${kf.center?.[0].toFixed(4)}, ${kf.center?.[1].toFixed(4)}) z:${kf.zoom?.toFixed(1)}`}
+                            title={`右键删除 · ${formatTime(kf.time)}: (${kf.center?.[0].toFixed(4)}, ${kf.center?.[1].toFixed(4)}) z:${kf.zoom?.toFixed(1)}`}
                             onClick={() => seek(kf.time)}
-                          />
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeKeyframe(track.id, kf.id);
+                            }}
+                          >
+                            <span className="tl-kf-del">×</span>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -671,9 +678,16 @@ export default function TimelinePanel() {
                             key={kf.id}
                             className="tl-keyframe"
                             style={{ left: kf.time * pxPerSec - 6 }}
-                            title={`${formatTime(kf.time)}: opacity=${kf.opacity}`}
+                            title={`右键删除 · ${formatTime(kf.time)}: opacity=${kf.opacity}`}
                             onClick={() => seek(kf.time)}
-                          />
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeKeyframe(track.id, kf.id);
+                            }}
+                          >
+                            <span className="tl-kf-del">×</span>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -733,9 +747,16 @@ export default function TimelinePanel() {
                             key={kf.id}
                             className="tl-keyframe"
                             style={{ left: kf.time * pxPerSec - 6 }}
-                            title={`${formatTime(kf.time)}: opacity=${kf.opacity}`}
+                            title={`右键删除 · ${formatTime(kf.time)}: opacity=${kf.opacity}`}
                             onClick={() => seek(kf.time)}
-                          />
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeKeyframe(track.id, kf.id);
+                            }}
+                          >
+                            <span className="tl-kf-del">×</span>
+                          </div>
                         ))}
                       </div>
                     )}

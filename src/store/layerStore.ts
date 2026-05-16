@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { Layer, LayerCreateParams, LayerUpdateParams } from '../types/layer';
+import type { Layer, LayerCreateParams, LayerUpdateParams, LayerGroup } from '../types/layer';
 import { nextColor } from '../types/layer';
 import { loadFile } from '../utils/fileLoader';
 
 interface LayerStore {
   layers: Layer[];
   activeLayerId: string | null;
+  groups: LayerGroup[];
 
   addLayer: (params: LayerCreateParams) => string;
   addLayerFromFile: (file: File) => Promise<string>;
@@ -16,19 +17,33 @@ interface LayerStore {
   updateLayerData: (id: string, data: Layer['data']) => void;
   updateLayerProperties: (id: string, params: LayerUpdateParams) => void;
   renameLayer: (id: string, name: string) => void;
+
+  /** 创建分组 */
+  createGroup: (name: string, layerIds?: string[]) => string;
+  /** 解散分组（将组内图层移出，删除分组） */
+  dissolveGroup: (groupId: string) => void;
+  /** 切换分组折叠状态 */
+  toggleGroupCollapse: (groupId: string) => void;
+  /** 将图层加入分组 */
+  addLayerToGroup: (layerId: string, groupId: string) => void;
+  /** 将图层从分组中移除 */
+  removeLayerFromGroup: (layerId: string) => void;
+  /** 重命名分组 */
+  renameGroup: (groupId: string, name: string) => void;
 }
 
 let idCounter = 0;
-function generateId(): string {
-  return `layer-${Date.now()}-${++idCounter}`;
+function generateId(prefix = 'layer'): string {
+  return `${prefix}-${Date.now()}-${++idCounter}`;
 }
 
 export const useLayerStore = create<LayerStore>((set, get) => ({
   layers: [],
   activeLayerId: null,
+  groups: [],
 
   addLayer: (params) => {
-    const id = generateId();
+    const id = generateId('layer');
     const color = params.color || nextColor();
     const layer: Layer = {
       id,
@@ -55,8 +70,7 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
     const features = data.features;
 
     if (features.length === 0) {
-      // 空文件：创建一个空图层
-      const id = generateId();
+      const id = generateId('layer');
       const emptyColor = nextColor();
       const layer: Layer = {
         id,
@@ -78,22 +92,19 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
       return id;
     }
 
-    // 每个 feature 作为独立图层
     const newLayers: Layer[] = [];
     let firstId = '';
 
     for (let i = 0; i < features.length; i++) {
       const feat = features[i];
-      const id = generateId();
+      const id = generateId('layer');
       if (i === 0) firstId = id;
 
-      // 确保每个 feature 有用于选中的唯一标识
       if (feat.id == null && !feat.properties?._featureId) {
         if (!feat.properties) feat.properties = {};
         feat.properties._featureId = `feat-${id}`;
       }
 
-      // 从 feature 属性中提取有意义的名称
       const props = feat.properties || {};
       const featureName =
         props.name || props.title || props.Name || props.NAME ||
@@ -134,6 +145,11 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
     set((s) => ({
       layers: s.layers.filter((l) => l.id !== id),
       activeLayerId: s.activeLayerId === id ? null : s.activeLayerId,
+      // 同时从分组中移除
+      groups: s.groups.map((g) => ({
+        ...g,
+        layerIds: g.layerIds.filter((lid) => lid !== id),
+      })),
     })),
 
   toggleLayer: (id) =>
@@ -172,4 +188,59 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
     set((s) => ({
       layers: s.layers.map((l) => (l.id === id ? { ...l, name } : l)),
     })),
+
+  // ====== 分组管理 ======
+  createGroup: (name, layerIds) => {
+    const id = generateId('group');
+    const group: LayerGroup = {
+      id,
+      name,
+      collapsed: false,
+      layerIds: layerIds || [],
+      order: get().groups.length,
+    };
+    set((s) => ({ groups: [...s.groups, group] }));
+    return id;
+  },
+
+  dissolveGroup: (groupId) => {
+    set((s) => ({
+      groups: s.groups.filter((g) => g.id !== groupId),
+    }));
+  },
+
+  toggleGroupCollapse: (groupId) => {
+    set((s) => ({
+      groups: s.groups.map((g) =>
+        g.id === groupId ? { ...g, collapsed: !g.collapsed } : g
+      ),
+    }));
+  },
+
+  addLayerToGroup: (layerId, groupId) => {
+    set((s) => ({
+      groups: s.groups.map((g) => {
+        if (g.id !== groupId) return g;
+        if (g.layerIds.includes(layerId)) return g;
+        return { ...g, layerIds: [...g.layerIds, layerId] };
+      }),
+    }));
+  },
+
+  removeLayerFromGroup: (layerId) => {
+    set((s) => ({
+      groups: s.groups.map((g) => ({
+        ...g,
+        layerIds: g.layerIds.filter((lid) => lid !== layerId),
+      })),
+    }));
+  },
+
+  renameGroup: (groupId, name) => {
+    set((s) => ({
+      groups: s.groups.map((g) =>
+        g.id === groupId ? { ...g, name } : g
+      ),
+    }));
+  },
 }));

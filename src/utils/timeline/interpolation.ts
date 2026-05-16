@@ -173,15 +173,22 @@ export function getStateAtTime(
       const pd = track.pathData;
       if (pd.coordinates.length < 2) continue;
 
-      const localTime = time; // 相对于轨道
-      const totalDuration = pd.pathDuration;
-      const progress = Math.max(0, Math.min(1, localTime / totalDuration));
+      // 计算相对于片段范围的时间进度
+      const clipStart = track.startTime;
+      const clipEnd = track.startTime + pd.pathDuration;
+      const clipProgress = Math.max(0, Math.min(1, (time - clipStart) / pd.pathDuration));
+
+      // 将进度映射到子路径范围
+      const subRange = pd.endProgress - pd.startProgress;
+      const subProgress = pd.startProgress + clipProgress * subRange;
 
       // 路径插值
-      const markerPos = interpolatePathPosition(pd.coordinates, progress);
+      const markerPos = interpolatePathPosition(pd.coordinates, subProgress);
+      const arrowAngle = calcArrowAngle(pd.coordinates, subProgress);
+
       pathStates.push({
         markerPosition: markerPos,
-        drawProgress: progress,
+        drawProgress: clipProgress,
         coordinates: pd.coordinates,
         markerColor: pd.markerColor,
         markerSize: pd.markerSize,
@@ -189,6 +196,7 @@ export function getStateAtTime(
         lineColor: pd.lineColor,
         lineWidth: pd.lineWidth,
         animType: pd.animType,
+        arrowAngle,
       });
     }
   }
@@ -231,6 +239,34 @@ function interpolatePathPosition(
   }
 
   return coords[coords.length - 1];
+}
+
+/** 计算箭头旋转角度（沿路径方向） */
+function calcArrowAngle(
+  coords: [number, number][],
+  progress: number
+): number {
+  if (coords.length < 2) return 0;
+
+  // 取当前位置稍前和稍后的点计算方向
+  const lookAhead = 0.01;
+  const p1 = interpolatePathPosition(coords, Math.max(0, progress - lookAhead));
+  const p2 = interpolatePathPosition(coords, Math.min(1, progress + lookAhead));
+
+  // 如果重叠则取更远的点
+  if (p1[0] === p2[0] && p1[1] === p2[1]) {
+    const pFar = interpolatePathPosition(coords, Math.min(1, progress + 0.05));
+    if (pFar[0] !== p1[0] || pFar[1] !== p1[1]) {
+      const dx = pFar[0] - p1[0];
+      const dy = pFar[1] - p1[1];
+      return Math.atan2(dy, dx) * (180 / Math.PI);
+    }
+    return 0;
+  }
+
+  const dx = p2[0] - p1[0];
+  const dy = p2[1] - p1[1];
+  return Math.atan2(dy, dx) * (180 / Math.PI);
 }
 
 /** 捕获当前地图状态作为关键帧 */

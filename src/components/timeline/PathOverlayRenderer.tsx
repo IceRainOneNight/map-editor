@@ -91,28 +91,58 @@ export default function PathOverlayRenderer() {
           const pos = mapInstance.project(p.markerPosition);
           const r = p.markerSize;
 
-          ctx.beginPath();
-          if (p.markerIcon === 'circle') {
-            ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+
+          if (p.markerIcon === 'arrow') {
+            // 箭头：旋转到路径方向
+            ctx.rotate((p.arrowAngle * Math.PI) / 180);
+            ctx.beginPath();
+            const s = r * 2;
+            ctx.moveTo(s, 0);
+            ctx.lineTo(-s * 0.6, -s * 0.6);
+            ctx.lineTo(-s * 0.3, 0);
+            ctx.lineTo(-s * 0.6, s * 0.6);
+            ctx.closePath();
+            ctx.fillStyle = p.markerColor;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          } else if (p.markerIcon === 'circle') {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = p.markerColor;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
           } else if (p.markerIcon === 'diamond') {
-            ctx.moveTo(pos.x, pos.y - r);
-            ctx.lineTo(pos.x + r, pos.y);
-            ctx.lineTo(pos.x, pos.y + r);
-            ctx.lineTo(pos.x - r, pos.y);
+            ctx.beginPath();
+            ctx.moveTo(0, -r);
+            ctx.lineTo(r, 0);
+            ctx.lineTo(0, r);
+            ctx.lineTo(-r, 0);
             ctx.closePath();
+            ctx.fillStyle = p.markerColor;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
           } else if (p.markerIcon === 'pin') {
-            // 大头针形状
-            ctx.moveTo(pos.x, pos.y);
-            ctx.lineTo(pos.x - r, pos.y - r * 0.7);
-            ctx.arc(pos.x, pos.y - r * 0.7, r, Math.PI, 0);
+            ctx.beginPath();
+            ctx.moveTo(0, r);
+            ctx.lineTo(-r, r * 0.3);
+            ctx.arc(0, r * 0.3, r, Math.PI, 0);
             ctx.closePath();
+            ctx.fillStyle = p.markerColor;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
           }
 
-          ctx.fillStyle = p.markerColor;
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.restore();
         }
       }
     };

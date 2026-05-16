@@ -60,7 +60,7 @@ export interface PathTrackData {
   /** 标记点样式 */
   markerColor: string;
   markerSize: number;
-  markerIcon: 'circle' | 'diamond' | 'pin';
+  markerIcon: 'arrow' | 'circle' | 'diamond' | 'pin';
   /** 划线样式 */
   lineColor: string;
   lineWidth: number;
@@ -68,6 +68,10 @@ export interface PathTrackData {
   pathDuration: number;
   /** 是否直接绘制模式创建的 */
   isDrawToolPath: boolean;
+  /** 路径起点进度 (0~1)，默认 0 */
+  startProgress: number;
+  /** 路径终点进度 (0~1)，默认 1 */
+  endProgress: number;
 }
 
 /** 轨道类型 */
@@ -135,10 +139,12 @@ export interface InterpolatedPathState {
   coordinates: [number, number][];
   markerColor: string;
   markerSize: number;
-  markerIcon: 'circle' | 'diamond' | 'pin';
+  markerIcon: 'arrow' | 'circle' | 'diamond' | 'pin';
   lineColor: string;
   lineWidth: number;
   animType: 'marker' | 'draw' | 'both';
+  /** 箭头旋转角度（度） */
+  arrowAngle: number;
 }
 
 /** 时间轴总状态 */

@@ -761,12 +761,17 @@ export default function TimelinePanel() {
                       </div>
                     )}
 
-                    {/* 路径轨道 */}
+                    {/* 路径轨道 - 可拖拽片段 */}
                     {track.type === 'path' && track.pathData && (
                       <div className="tl-track-content tl-track-path">
-                        <span className="tl-track-placeholder">
-                          {track.pathData.coordinates.length} 个路径点 · {track.pathData.pathDuration}秒
-                        </span>
+                        <PathClip
+                          track={track}
+                          pxPerSec={pxPerSec}
+                          updatePathTrackData={useTimelineStore.getState().updatePathTrackData}
+                          setTrackStartTime={(t) => {
+                            useTimelineStore.getState().setTrackStartTime?.(track.id, t);
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -861,5 +866,70 @@ function AudioWaveform({
         top: 0,
       }}
     />
+  );
+}
+
+// ====== 路径片段组件（可拖拽/缩放） ======
+function PathClip({
+  track,
+  pxPerSec,
+  updatePathTrackData,
+  setTrackStartTime,
+}: {
+  track: import('../../types/timeline').KeyframeTrack;
+  pxPerSec: number;
+  updatePathTrackData: (trackId: string, data: Partial<import('../../types/timeline').PathTrackData>) => void;
+  setTrackStartTime: (startTime: number) => void;
+}) {
+  const pd = track.pathData!;
+  const clipLeft = track.startTime * pxPerSec;
+  const clipWidth = pd.pathDuration * pxPerSec;
+  const [resizing, setResizing] = useState<'left' | 'right' | 'move' | null>(null);
+  const dragStartRef = useRef({ mouseX: 0, startTime: 0, duration: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent, edge: 'left' | 'right' | 'move') => {
+    e.stopPropagation();
+    e.preventDefault();
+    setResizing(edge);
+    dragStartRef.current = { mouseX: e.clientX, startTime: track.startTime, duration: pd.pathDuration };
+  };
+
+  useEffect(() => {
+    if (!resizing) return;
+    const onMouseMove = (e: MouseEvent) => {
+      const dx = (e.clientX - dragStartRef.current.mouseX) / pxPerSec;
+      const { startTime, duration } = dragStartRef.current;
+      if (resizing === 'move') {
+        setTrackStartTime(Math.max(0, startTime + dx));
+      } else if (resizing === 'left') {
+        const newStart = Math.max(0, startTime + dx);
+        const newDuration = Math.max(1, duration - dx);
+        if (newStart + newDuration <= startTime + duration + 0.1) {
+          setTrackStartTime(newStart);
+          updatePathTrackData(track.id, { pathDuration: newDuration });
+        }
+      } else if (resizing === 'right') {
+        updatePathTrackData(track.id, { pathDuration: Math.max(1, duration + dx) });
+      }
+    };
+    const onMouseUp = () => setResizing(null);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [resizing, pxPerSec, track.id, setTrackStartTime, updatePathTrackData]);
+
+  if (clipWidth <= 0) return null;
+  return (
+    <div className="tl-path-clip" style={{ position: 'absolute', left: clipLeft, width: clipWidth, top: 4, bottom: 4 }}>
+      <div className="tl-path-edge tl-path-edge-left" onMouseDown={(e) => handleMouseDown(e, 'left')} />
+      <div className="tl-path-body" onMouseDown={(e) => handleMouseDown(e, 'move')} style={{ cursor: resizing === 'move' ? 'grabbing' : 'grab' }}>
+        <span className="tl-path-clip-name">{track.name}</span>
+        <span className="tl-path-clip-info">{pd.pathDuration.toFixed(1)}s · {pd.coordinates.length}点</span>
+      </div>
+      <div className="tl-path-edge tl-path-edge-right" onMouseDown={(e) => handleMouseDown(e, 'right')} />
+    </div>
   );
 }

@@ -34,6 +34,8 @@ interface TimelineActions {
   addAudioTrack: (file: File) => Promise<string>;
   /** 设置音频音量 */
   setTrackVolume: (trackId: string, volume: number) => void;
+  /** 设置轨道开始时间 */
+  setTrackStartTime: (trackId: string, startTime: number) => void;
 
   /** 添加文字轨道 */
   addTextTrack: (data: TextTrackData) => string;
@@ -44,6 +46,8 @@ interface TimelineActions {
   addFeaturePathTrack: (layerId: string, featureId: string | number, coordinates: [number, number][]) => void;
   /** 添加路径动画轨道（直接绘制的路径） */
   addDrawnPathTrack: (coordinates: [number, number][]) => string;
+  /** 更新路径轨道数据 */
+  updatePathTrackData: (trackId: string, data: Partial<import('../types/timeline').PathTrackData>) => void;
 
   /** 在地图轨道上添加当前地图状态的关键帧 */
   addMapKeyframeAtCurrentTime: () => void;
@@ -235,6 +239,15 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     }));
   },
 
+  setTrackStartTime: (trackId, startTime) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === trackId ? { ...t, startTime: Math.max(0, startTime) } : t
+      ),
+    }));
+    get().recalcDuration();
+  },
+
   addTextTrack: (data) => {
     const id = genId('text-track');
     const track: KeyframeTrack = {
@@ -275,11 +288,13 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       animType: 'both',
       markerColor: '#ff4444',
       markerSize: 8,
-      markerIcon: 'circle',
+      markerIcon: 'arrow',
       lineColor: '#ff6b6b',
       lineWidth: 3,
       pathDuration: 5,
       isDrawToolPath: false,
+      startProgress: 0,
+      endProgress: 1,
     };
 
     const track: KeyframeTrack = {
@@ -304,11 +319,13 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
       animType: 'both',
       markerColor: '#ff4444',
       markerSize: 8,
-      markerIcon: 'circle',
+      markerIcon: 'arrow',
       lineColor: '#ff6b6b',
       lineWidth: 3,
       pathDuration: 5,
       isDrawToolPath: true,
+      startProgress: 0,
+      endProgress: 1,
     };
 
     const track: KeyframeTrack = {
@@ -325,6 +342,16 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
     set((s) => ({ tracks: [...s.tracks, track] }));
     get().recalcDuration();
     return id;
+  },
+
+  updatePathTrackData: (trackId, data) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === trackId && t.pathData
+          ? { ...t, pathData: { ...t.pathData, ...data } }
+          : t
+      ),
+    }));
   },
 
   addMapKeyframeAtCurrentTime: () => {

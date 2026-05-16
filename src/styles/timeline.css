@@ -350,6 +350,68 @@
   background: rgba(231, 76, 60, 0.04);
 }
 
+/* ===== Path Clip (draggable/resizable segment) ===== */
+.tl-path-clip {
+  display: flex;
+  align-items: stretch;
+  z-index: 5;
+}
+
+.tl-path-body {
+  flex: 1;
+  background: rgba(231, 76, 60, 0.2);
+  border-top: 2px solid #e74c3c;
+  border-bottom: 2px solid #e74c3c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.tl-path-body:hover {
+  background: rgba(231, 76, 60, 0.3);
+}
+
+.tl-path-clip-name {
+  font-size: 11px;
+  color: #e74c3c;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.tl-path-clip-info {
+  font-size: 9px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.tl-path-edge {
+  width: 6px;
+  flex-shrink: 0;
+  background: rgba(231, 76, 60, 0.4);
+  cursor: col-resize;
+  transition: background 0.12s;
+}
+
+.tl-path-edge:hover {
+  background: #e74c3c;
+}
+
+.tl-path-edge-left {
+  border-radius: 4px 0 0 4px;
+}
+
+.tl-path-edge-right {
+  border-radius: 0 4px 4px 0;
+}
+
 /* ===== Text Track Preview ===== */
 .tl-text-preview {
   background: rgba(52, 152, 219, 0.12);

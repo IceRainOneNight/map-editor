@@ -949,6 +949,12 @@ body,
   background: rgba(255, 255, 255, 0.06);
 }
 
+.layer-group-header.drag-over {
+  background: rgba(140, 184, 42, 0.15) !important;
+  outline: 2px dashed rgba(140, 184, 42, 0.4);
+  outline-offset: -2px;
+}
+
 .layer-group-arrow {
   font-size: 9px;
   color: #888;

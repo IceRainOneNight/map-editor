@@ -18,8 +18,9 @@ export default function DrawToolbar() {
   const nodeEditMode = useEditStore((s) => s.nodeEditMode);
   const setNodeEditMode = useEditStore((s) => s.setNodeEditMode);
 
-  // 判断选中要素是否支持节点编辑（线/面）
   const layers = useLayerStore((s) => s.layers);
+  const updateLayerData = useLayerStore((s) => s.updateLayerData);
+  const removeLayer = useLayerStore((s) => s.removeLayer);
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const selectedFeature = selectedFeatureId != null
     ? selectedLayer?.data.features.find(
@@ -33,6 +34,22 @@ export default function DrawToolbar() {
   // Undo/Redo from zundo
   const undo = useEditStore.temporal.getState().undo;
   const redo = useEditStore.temporal.getState().redo;
+
+  const handleDeleteSelected = () => {
+    if (selectedLayerId != null && selectedFeatureId != null) {
+      const layer = useLayerStore.getState().layers.find((l) => l.id === selectedLayerId);
+      if (layer) {
+        const updated = {
+          ...layer.data,
+          features: layer.data.features.filter(
+            (f) => (f.id || f.properties?._featureId) !== selectedFeatureId
+          ),
+        };
+        updateLayerData(selectedLayerId, updated);
+        clearSelection();
+      }
+    }
+  };
 
   return (
     <>
@@ -74,6 +91,14 @@ export default function DrawToolbar() {
             title="取消选中 (Esc)"
           >
             ✕ 取消选中
+          </button>
+          <button
+            className="toolbar-btn danger"
+            onClick={handleDeleteSelected}
+            title="删除选中要素 (Delete)"
+            style={{ color: '#e74c3c', fontWeight: 500 }}
+          >
+            🗑 删除选中
           </button>
           {canEditNodes && (
             <button

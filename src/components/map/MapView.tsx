@@ -330,26 +330,36 @@ export default function MapView() {
     return newId;
   }, []);
 
-  // ---- 切换绘制工具时自动新建图层 ----
+  // ---- 切换绘制工具时自动创建或复用绘制图层 ----
   const prevToolRef = useRef<typeof tool>(null);
   useEffect(() => {
-    // 仅在工具变为绘制工具时触发（非 select / null）
     if (tool === 'point' || tool === 'line' || tool === 'polygon') {
-      // 避免切换到同一工具时重复创建
       if (prevToolRef.current === tool) return;
       prevToolRef.current = tool;
 
-      const { addLayer, setActiveLayer } = useLayerStore.getState();
+      const { layers, addLayer, setActiveLayer } = useLayerStore.getState();
       const toolNames: Record<string, string> = {
         point: '点图层',
         line: '线图层',
         polygon: '面图层',
       };
-      const newId = addLayer({
-        name: `${toolNames[tool]}-${Date.now() % 10000}`,
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      setActiveLayer(newId);
+
+      // 找一个现有的空绘制图层，避免重复创建
+      const existingEmpty = layers.find(
+        (l) =>
+          (l.name.startsWith('点图层') || l.name.startsWith('线图层') || l.name.startsWith('面图层')) &&
+          l.data.features.length === 0
+      );
+
+      if (existingEmpty) {
+        setActiveLayer(existingEmpty.id);
+      } else {
+        const newId = addLayer({
+          name: `${toolNames[tool]}-${Date.now() % 10000}`,
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        setActiveLayer(newId);
+      }
     } else {
       prevToolRef.current = tool;
     }
@@ -394,7 +404,7 @@ export default function MapView() {
 
       const el = document.createElement('div');
       el.className = 'edit-node';
-      el.style.cssText = 'width:10px;height:10px;background:#FF4500;border:2px solid #fff;border-radius:50%;position:absolute;cursor:grab;z-index:10;transform:translate(-50%,-50%);pointer-events:auto;';
+      el.style.cssText = 'width:12px;height:12px;background:#FF4500;border:2px solid #fff;border-radius:50%;position:absolute;cursor:grab;z-index:10;transform:translate(-50%,-50%);pointer-events:auto;box-shadow:0 0 4px rgba(0,0,0,0.5);';
       el.title = `节点 ${idx}`;
 
       const lngLat = new maplibregl.LngLat(coord[0], coord[1]);
@@ -418,6 +428,30 @@ export default function MapView() {
         const pos = map.project(newLngLat);
         el.style.left = pos.x + 'px';
         el.style.top = pos.y + 'px';
+
+        // 实时更新线段的显示
+        const curLayer = layersRef.current.find((l) => l.id === selectedLayerId);
+        if (curLayer && selectedFeatureId != null) {
+          const updatedFeatures = curLayer.data.features.map((f) => {
+            const fid = f.id || f.properties?._featureId;
+            if (fid !== selectedFeatureId) return f;
+            const newFeat = JSON.parse(JSON.stringify(f));
+            const geom = newFeat.geometry;
+            if (geom.type === 'Point') {
+              geom.coordinates = [m.lngLat.lng, m.lngLat.lat];
+            } else if (geom.type === 'LineString') {
+              (geom.coordinates as [number, number][])[m.index] = [m.lngLat.lng, m.lngLat.lat];
+            } else if (geom.type === 'Polygon') {
+              (geom.coordinates as [number, number][][])[0][m.index] = [m.lngLat.lng, m.lngLat.lat];
+              if (m.index === 0) {
+                const last = geom.coordinates[0].length - 1;
+                geom.coordinates[0][last] = [m.lngLat.lng, m.lngLat.lat];
+              }
+            }
+            return newFeat;
+          });
+          updateLayerData(curLayer.id, { ...curLayer.data, features: updatedFeatures });
+        }
       };
 
       const onMouseUp = () => {
@@ -574,11 +608,16 @@ export default function MapView() {
         line: '线图层',
         polygon: '面图层',
       };
-      const newId = createLayer({
-        name: `${toolNames[curTool]}-${Date.now() % 10000}`,
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      activateLayer(newId);
+      // 检查当前激活图层是否已经是空的绘制图层，如果是则重用
+      const currentLayers = useLayerStore.getState().layers;
+      const currActive = currentLayers.find((l) => l.id === activeId);
+      if (!currActive || currActive.data.features.length > 0) {
+        const newId = createLayer({
+          name: `${toolNames[curTool]}-${Date.now() % 10000}`,
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        activateLayer(newId);
+      }
     };
 
     const onMapClick = (e: maplibregl.MapMouseEvent) => {
@@ -773,7 +812,7 @@ export default function MapView() {
   }, [tool]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       <div
         ref={nodeContainerRef}

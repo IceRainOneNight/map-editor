@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLayerStore } from '../../store/layerStore';
 import { useEditStore } from '../../store/editStore';
 import { useBasemapStore } from '../../store/basemapStore';
@@ -33,18 +33,20 @@ export default function LayerPanel() {
   const basemapLayers = useBasemapStore((s) => s.basemapLayers);
   const addBasemapLayer = useBasemapStore((s) => s.addBasemapLayer);
 
-  // Groups
   const groups = useLayerStore((s) => s.groups);
   const createGroup = useLayerStore((s) => s.createGroup);
   const dissolveGroup = useLayerStore((s) => s.dissolveGroup);
   const toggleGroupCollapse = useLayerStore((s) => s.toggleGroupCollapse);
   const renameGroup = useLayerStore((s) => s.renameGroup);
+  const addLayerToGroup = useLayerStore((s) => s.addLayerToGroup);
+  const removeLayerFromGroup = useLayerStore((s) => s.removeLayerFromGroup);
 
   const [showBasemapAdd, setShowBasemapAdd] = useState(false);
   const [basemapProvider, setBasemapProvider] = useState<BasemapProvider>('amap');
   const [basemapStyle, setBasemapStyle] = useState<BasemapTileStyle>('road');
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [groupNameInput, setGroupNameInput] = useState('');
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
 
   const sortedBase = [...basemapLayers].sort((a, b) => b.order - a.order);
   const sortedData = [...layers].sort((a, b) => b.order - a.order);
@@ -65,6 +67,51 @@ export default function LayerPanel() {
     if (trimmed) renameGroup(groupId, trimmed);
     setRenamingGroupId(null);
   };
+
+  // ====== 拖拽分组处理 ======
+  const handleGroupDragOver = useCallback((e: React.DragEvent, groupId: string) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.includes('layerId')) {
+      e.dataTransfer.dropEffect = 'move';
+      setDragOverGroupId(groupId);
+    }
+  }, []);
+
+  const handleGroupDragLeave = useCallback(() => {
+    setDragOverGroupId(null);
+  }, []);
+
+  const handleGroupDrop = useCallback(
+    (e: React.DragEvent, groupId: string) => {
+      e.preventDefault();
+      setDragOverGroupId(null);
+      const layerId = e.dataTransfer.getData('layerId');
+      if (!layerId) return;
+      addLayerToGroup(layerId, groupId);
+    },
+    [addLayerToGroup]
+  );
+
+  // 从分组中拖出（拖到未分组区域）
+  const handleUngroupedDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer.types.includes('layerId')) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+    },
+    []
+  );
+
+  const handleUngroupedDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const layerId = e.dataTransfer.getData('layerId');
+      if (!layerId) return;
+      removeLayerFromGroup(layerId);
+    },
+    [removeLayerFromGroup]
+  );
 
   return (
     <div className="layer-panel">
@@ -150,10 +197,13 @@ export default function LayerPanel() {
         {/* 渲染分组 */}
         {sortedGroups.map((group) => (
           <div key={group.id} className="layer-group">
-            {/* 分组头 */}
+            {/* 分组头 - 也是拖放目标 */}
             <div
-              className="layer-group-header"
+              className={`layer-group-header ${dragOverGroupId === group.id ? 'drag-over' : ''}`}
               onClick={() => toggleGroupCollapse(group.id)}
+              onDragOver={(e) => handleGroupDragOver(e, group.id)}
+              onDragLeave={handleGroupDragLeave}
+              onDrop={(e) => handleGroupDrop(e, group.id)}
             >
               <span className="layer-group-arrow">
                 {group.collapsed ? '▶' : '▼'}
@@ -203,7 +253,7 @@ export default function LayerPanel() {
               <div className="layer-group-children">
                 {group.layerIds.length === 0 && (
                   <div className="layer-empty" style={{ padding: '8px 12px', fontSize: 11 }}>
-                    从下方拖拽图层到此处
+                    将图层拖拽到此处加入分组
                   </div>
                 )}
                 {group.layerIds.map((lid) => {
@@ -226,21 +276,27 @@ export default function LayerPanel() {
           </div>
         ))}
 
-        {/* 未分组图层 */}
-        {sortedData
-          .filter((l) => !groups.some((g) => g.layerIds.includes(l.id)))
-          .map((layer) => (
-            <LayerItem
-              key={layer.id}
-              layer={layer}
-              isActive={layer.id === activeLayerId}
-              onSelect={() => {
-                const newId = layer.id === activeLayerId ? null : layer.id;
-                setActiveLayer(newId);
-                if (newId) clearSelection();
-              }}
-            />
-          ))}
+        {/* 未分组图层（也是拖放目标：从分组拖出图层到这里） */}
+        <div
+          onDragOver={handleUngroupedDragOver}
+          onDrop={handleUngroupedDrop}
+          style={{ minHeight: 4 }}
+        >
+          {sortedData
+            .filter((l) => !groups.some((g) => g.layerIds.includes(l.id)))
+            .map((layer) => (
+              <LayerItem
+                key={layer.id}
+                layer={layer}
+                isActive={layer.id === activeLayerId}
+                onSelect={() => {
+                  const newId = layer.id === activeLayerId ? null : layer.id;
+                  setActiveLayer(newId);
+                  if (newId) clearSelection();
+                }}
+              />
+            ))}
+        </div>
       </div>
 
       {/* ===== 底部统计 ===== */}

@@ -15,6 +15,10 @@ export interface Keyframe {
   opacity?: number;
   color?: string;
   visible?: boolean;
+  /** 文字属性（文字轨道使用） */
+  textContent?: string;
+  textPosition?: [number, number];
+  textScale?: number;
   /** 缓动函数，默认 linear */
   easing: EasingType;
 }
@@ -27,8 +31,47 @@ export interface AudioTrackData {
   duration: number;
 }
 
+/** 文字轨道数据 */
+export interface TextTrackData {
+  content: string;
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+  /** 定位方式 */
+  positionType: 'map' | 'screen';
+  /** 地图坐标（positionType=map 时使用） */
+  mapPosition?: [number, number];
+  /** 屏幕坐标（positionType=screen 时使用，百分比 0-100） */
+  screenPosition?: { x: number; y: number };
+  backgroundColor?: string;
+  backgroundOpacity?: number;
+  alignment: 'left' | 'center' | 'right';
+  /** 文字出现/消失时间偏移（秒，相对于轨道） */
+  startOffset: number;
+  endOffset: number;
+}
+
+/** 路径动画轨道数据 */
+export interface PathTrackData {
+  /** 路径坐标 */
+  coordinates: [number, number][];
+  /** 动画类型 */
+  animType: 'marker' | 'draw' | 'both';
+  /** 标记点样式 */
+  markerColor: string;
+  markerSize: number;
+  markerIcon: 'circle' | 'diamond' | 'pin';
+  /** 划线样式 */
+  lineColor: string;
+  lineWidth: number;
+  /** 路径动画从头到尾耗时（秒） */
+  pathDuration: number;
+  /** 是否直接绘制模式创建的 */
+  isDrawToolPath: boolean;
+}
+
 /** 轨道类型 */
-export type TrackType = 'map' | 'layer' | 'audio';
+export type TrackType = 'map' | 'layer' | 'audio' | 'text' | 'path';
 
 /** 关键帧轨道 */
 export interface KeyframeTrack {
@@ -45,6 +88,10 @@ export interface KeyframeTrack {
   volume: number;
   /** 音频在时间轴上的起始偏移（秒） */
   startTime: number;
+  /** 文字轨道数据 */
+  textData?: TextTrackData;
+  /** 路径轨道数据 */
+  pathData?: PathTrackData;
 }
 
 /** 插值后的地图状态 */
@@ -60,6 +107,38 @@ export interface InterpolatedLayerState {
   opacity: number;
   color: string;
   visible: boolean;
+}
+
+/** 插值后的文字状态 */
+export interface InterpolatedTextState {
+  content: string;
+  opacity: number;
+  color: string;
+  scale: number;
+  positionType: 'map' | 'screen';
+  mapPosition?: [number, number];
+  screenPosition?: { x: number; y: number };
+  fontSize: number;
+  fontFamily: string;
+  backgroundColor?: string;
+  backgroundOpacity?: number;
+  alignment: 'left' | 'center' | 'right';
+}
+
+/** 插值后的路径动画状态 */
+export interface InterpolatedPathState {
+  /** 标记点当前位置（经纬度） */
+  markerPosition: [number, number];
+  /** 已绘制路径进度 (0~1) */
+  drawProgress: number;
+  /** 完整路径坐标 */
+  coordinates: [number, number][];
+  markerColor: string;
+  markerSize: number;
+  markerIcon: 'circle' | 'diamond' | 'pin';
+  lineColor: string;
+  lineWidth: number;
+  animType: 'marker' | 'draw' | 'both';
 }
 
 /** 时间轴总状态 */

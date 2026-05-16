@@ -1,10 +1,12 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import type maplibregl from 'maplibre-gl';
 import { useTimelineStore } from '../../store/timelineStore';
 import { getStateAtTime } from '../../utils/timeline/interpolation';
 import { getMapRef } from '../../store/mapRef';
 import { useLayerStore } from '../../store/layerStore';
 import { getAudioManager } from '../../utils/timeline/audio';
 import { exportVideo, getExportExtension } from '../../utils/timeline/export';
+import TextTrackEditor from './TextTrackEditor';
 import '../../styles/timeline.css';
 
 /** 格式化时间 mm:ss.ms */
@@ -32,6 +34,8 @@ export default function TimelinePanel() {
   const seek = useTimelineStore((s) => s.seek);
   const setSpeed = useTimelineStore((s) => s.setSpeed);
   const setZoom = useTimelineStore((s) => s.setZoom);
+  const setDuration = useTimelineStore((s) => s.setDuration);
+  const addDrawnPathTrack = useTimelineStore((s) => s.addDrawnPathTrack);
   const addKeyframe = useTimelineStore((s) => s.addKeyframe);
   const removeKeyframe = useTimelineStore((s) => s.removeKeyframe);
   const addMapKeyframeAtCurrentTime = useTimelineStore((s) => s.addMapKeyframeAtCurrentTime);
@@ -41,6 +45,11 @@ export default function TimelinePanel() {
   const recalcDuration = useTimelineStore((s) => s.recalcDuration);
 
   const layers = useLayerStore((s) => s.layers);
+
+  // Text editor and path draw state
+  const [showTextEditor, setShowTextEditor] = useState(false);
+  const [drawingPath, setDrawingPath] = useState(false);
+  const [pathCoords, setPathCoords] = useState<[number, number][]>([]);
 
   // Refs for scroll sync
   const rulerRef = useRef<HTMLDivElement>(null);
@@ -329,6 +338,68 @@ export default function TimelinePanel() {
     }
   }, []);
 
+  // ====== 路径绘制 ======
+  const handleStartPathDraw = useCallback(() => {
+    setDrawingPath(true);
+    setPathCoords([]);
+  }, []);
+
+  // 监听地图点击添加路径点
+  useEffect(() => {
+    if (!drawingPath) return;
+    const map = getMapRef();
+    if (!map) return;
+
+    const onClick = (e: maplibregl.MapMouseEvent) => {
+      setPathCoords((prev) => [...prev, [e.lngLat.lng, e.lngLat.lat]]);
+    };
+
+    const onDblClick = (e: maplibregl.MapMouseEvent) => {
+      e.preventDefault();
+      // 双击完成路径
+      const store = useTimelineStore.getState();
+      const coords = pathCoordsRef.current;
+      if (coords.length >= 2) {
+        store.addDrawnPathTrack(coords);
+      }
+      setDrawingPath(false);
+      setPathCoords([]);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDrawingPath(false);
+        setPathCoords([]);
+      }
+      if (e.key === 'Enter') {
+        const store = useTimelineStore.getState();
+        const coords = pathCoordsRef.current;
+        if (coords.length >= 2) {
+          store.addDrawnPathTrack(coords);
+        }
+        setDrawingPath(false);
+        setPathCoords([]);
+      }
+    };
+
+    map.on('click', onClick);
+    map.on('dblclick', onDblClick);
+    document.addEventListener('keydown', onKeyDown);
+
+    map.getCanvas().style.cursor = 'crosshair';
+
+    return () => {
+      map.off('click', onClick);
+      map.off('dblclick', onDblClick);
+      document.removeEventListener('keydown', onKeyDown);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [drawingPath]);
+
+  // ref for path coords in event handlers
+  const pathCoordsRef = useRef(pathCoords);
+  pathCoordsRef.current = pathCoords;
+
   // ====== 刻度线 ======
   const rulerTicks = useMemo(() => {
     const ticks: { time: number; label: string; major: boolean }[] = [];
@@ -353,6 +424,8 @@ export default function TimelinePanel() {
       case 'map': return '🌐';
       case 'layer': return '🗺️';
       case 'audio': return '🎵';
+      case 'text': return '📝';
+      case 'path': return '📍';
       default: return '📄';
     }
   };
@@ -371,7 +444,17 @@ export default function TimelinePanel() {
 
         <span className="tl-timecode">{formatTime(currentTime)}</span>
         <span className="tl-timecode-sep">/</span>
-        <span className="tl-timecode tl-timecode-total">{formatTime(duration)}</span>
+        <input
+          type="number"
+          className="tl-duration-input"
+          value={duration}
+          min={5}
+          max={3600}
+          step={5}
+          onChange={(e) => setDuration(Number(e.target.value))}
+          title="总时长（秒）"
+        />
+        <span className="tl-timecode-sep">秒</span>
 
         <div className="tl-divider" />
 
@@ -388,6 +471,23 @@ export default function TimelinePanel() {
         </select>
 
         <div className="tl-divider" />
+
+        <button
+          className="tl-btn tl-btn-add-kf"
+          onClick={() => setShowTextEditor(true)}
+          title="添加文字"
+        >
+          ＋ 文字
+        </button>
+
+        <button
+          className="tl-btn tl-btn-add-kf"
+          onClick={handleStartPathDraw}
+          title="绘制路径动画"
+          disabled={drawingPath}
+        >
+          ＋ 路径
+        </button>
 
         <button
           className="tl-btn"
@@ -515,6 +615,26 @@ export default function TimelinePanel() {
                           ✕
                         </button>
                       )}
+                      {(track.type === 'text' || track.type === 'path') && (
+                        <>
+                          {track.type === 'text' && (
+                            <button
+                              className="tl-btn tl-btn-sm tl-btn-add-kf"
+                              onClick={() => handleAddKeyframe(track.id)}
+                              title="添加关键帧"
+                            >
+                              ＋
+                            </button>
+                          )}
+                          <button
+                            className="tl-btn tl-btn-sm tl-btn-del"
+                            onClick={() => removeTrack(track.id)}
+                            title="删除轨道"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -587,6 +707,47 @@ export default function TimelinePanel() {
                         </div>
                       </div>
                     )}
+
+                    {/* 文字轨道 */}
+                    {track.type === 'text' && track.textData && (
+                      <div className="tl-track-content tl-track-text">
+                        <div
+                          className="tl-text-preview"
+                          style={{
+                            position: 'absolute',
+                            left: track.textData.startOffset * pxPerSec,
+                            width: Math.max(50, (track.textData.endOffset - track.textData.startOffset) * pxPerSec),
+                            top: 4,
+                            bottom: 4,
+                          }}
+                        >
+                          <span className="tl-text-content">
+                            {track.textData.content}
+                          </span>
+                          <span className="tl-text-time">
+                            {formatTime(track.textData.startOffset)} - {formatTime(track.textData.endOffset)}
+                          </span>
+                        </div>
+                        {track.keyframes.map((kf) => (
+                          <div
+                            key={kf.id}
+                            className="tl-keyframe"
+                            style={{ left: kf.time * pxPerSec - 6 }}
+                            title={`${formatTime(kf.time)}: opacity=${kf.opacity}`}
+                            onClick={() => seek(kf.time)}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 路径轨道 */}
+                    {track.type === 'path' && track.pathData && (
+                      <div className="tl-track-content tl-track-path">
+                        <span className="tl-track-placeholder">
+                          {track.pathData.coordinates.length} 个路径点 · {track.pathData.pathDuration}秒
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -607,6 +768,11 @@ export default function TimelinePanel() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 文字编辑器弹窗 */}
+      {showTextEditor && (
+        <TextTrackEditor onClose={() => setShowTextEditor(false)} />
       )}
     </div>
   );

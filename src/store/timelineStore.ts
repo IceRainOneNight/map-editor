@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { KeyframeTrack, Keyframe, TimelineState, AudioTrackData } from '../types/timeline';
+import type { KeyframeTrack, Keyframe, TimelineState, AudioTrackData, TextTrackData, PathTrackData } from '../types/timeline';
 import { captureCurrentMapState, computeDuration } from '../utils/timeline/interpolation';
 
 interface TimelineActions {
@@ -13,6 +13,8 @@ interface TimelineActions {
   setSpeed: (speed: number) => void;
   /** 设置时间轴缩放级别 */
   setZoom: (zoom: number) => void;
+  /** 设置总时长 */
+  setDuration: (duration: number) => void;
 
   /** 从 LayerPanel 拖入图层，创建图层轨道 */
   addLayerTrack: (layerId: string, layerName: string) => void;
@@ -32,6 +34,16 @@ interface TimelineActions {
   addAudioTrack: (file: File) => Promise<string>;
   /** 设置音频音量 */
   setTrackVolume: (trackId: string, volume: number) => void;
+
+  /** 添加文字轨道 */
+  addTextTrack: (data: TextTrackData) => string;
+  /** 更新文字轨道数据 */
+  updateTextTrack: (trackId: string, data: Partial<TextTrackData>) => void;
+
+  /** 添加路径动画轨道（从已有线要素） */
+  addFeaturePathTrack: (layerId: string, featureId: string | number, coordinates: [number, number][]) => void;
+  /** 添加路径动画轨道（直接绘制的路径） */
+  addDrawnPathTrack: (coordinates: [number, number][]) => string;
 
   /** 在地图轨道上添加当前地图状态的关键帧 */
   addMapKeyframeAtCurrentTime: () => void;
@@ -66,7 +78,7 @@ const DEFAULT_MAP_TRACK: KeyframeTrack = {
 const defaultState: TimelineState = {
   isPlaying: false,
   currentTime: 0,
-  duration: 10,
+  duration: 30,
   speed: 1,
   zoom: 100,
   tracks: [DEFAULT_MAP_TRACK],
@@ -96,9 +108,9 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   setSpeed: (speed) => set({ speed }),
   setZoom: (zoom) => set({ zoom: Math.max(20, Math.min(500, zoom)) }),
+  setDuration: (duration) => set({ duration: Math.max(5, Math.min(3600, duration)) }),
 
   addLayerTrack: (layerId, layerName) => {
-    // 检查是否已经存在该图层的轨道
     const existing = get().tracks.find(
       (t) => t.type === 'layer' && t.layerId === layerId
     );
@@ -122,7 +134,7 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
   },
 
   removeTrack: (trackId) => {
-    if (trackId === 'map-track') return; // 地图轨道不可删除
+    if (trackId === 'map-track') return;
     set((s) => ({
       tracks: s.tracks.filter((t) => t.id !== trackId),
     }));
@@ -175,8 +187,6 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
   addAudioTrack: async (file: File) => {
     const id = genId('audio-track');
-
-    // 创建初始轨道（无音频数据时先占位）
     const track: KeyframeTrack = {
       id,
       type: 'audio',
@@ -189,7 +199,6 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
 
     set((s) => ({ tracks: [...s.tracks, track] }));
 
-    // 解码音频
     try {
       const arrayBuffer = await file.arrayBuffer();
       const audioContext = new AudioContext();
@@ -224,6 +233,98 @@ export const useTimelineStore = create<TimelineStore>((set, get) => ({
         t.id === trackId ? { ...t, volume: Math.max(0, Math.min(1, volume)) } : t
       ),
     }));
+  },
+
+  addTextTrack: (data) => {
+    const id = genId('text-track');
+    const track: KeyframeTrack = {
+      id,
+      type: 'text',
+      name: data.content.substring(0, 20) || '文字',
+      keyframes: [],
+      visible: true,
+      volume: 1,
+      startTime: 0,
+      textData: data,
+    };
+    set((s) => ({ tracks: [...s.tracks, track] }));
+    get().recalcDuration();
+    return id;
+  },
+
+  updateTextTrack: (trackId, data) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) =>
+        t.id === trackId && t.textData
+          ? { ...t, textData: { ...t.textData, ...data }, name: data.content?.substring(0, 20) || t.name }
+          : t
+      ),
+    }));
+  },
+
+  addFeaturePathTrack: (layerId, featureId, coordinates) => {
+    // 检查是否已存在该要素的路径轨道
+    const existing = get().tracks.find(
+      (t) => t.type === 'path' && t.pathData && t.pathData.coordinates === coordinates
+    );
+    if (existing) return;
+
+    const id = genId('path-track');
+    const pathData: PathTrackData = {
+      coordinates,
+      animType: 'both',
+      markerColor: '#ff4444',
+      markerSize: 8,
+      markerIcon: 'circle',
+      lineColor: '#ff6b6b',
+      lineWidth: 3,
+      pathDuration: 5,
+      isDrawToolPath: false,
+    };
+
+    const track: KeyframeTrack = {
+      id,
+      type: 'path',
+      name: `路径-${(coordinates.length - 1)}段`,
+      keyframes: [],
+      visible: true,
+      volume: 1,
+      startTime: 0,
+      pathData,
+    };
+
+    set((s) => ({ tracks: [...s.tracks, track] }));
+    get().recalcDuration();
+  },
+
+  addDrawnPathTrack: (coordinates) => {
+    const id = genId('path-track');
+    const pathData: PathTrackData = {
+      coordinates,
+      animType: 'both',
+      markerColor: '#ff4444',
+      markerSize: 8,
+      markerIcon: 'circle',
+      lineColor: '#ff6b6b',
+      lineWidth: 3,
+      pathDuration: 5,
+      isDrawToolPath: true,
+    };
+
+    const track: KeyframeTrack = {
+      id,
+      type: 'path',
+      name: `画笔路径-${(coordinates.length - 1)}段`,
+      keyframes: [],
+      visible: true,
+      volume: 1,
+      startTime: 0,
+      pathData,
+    };
+
+    set((s) => ({ tracks: [...s.tracks, track] }));
+    get().recalcDuration();
+    return id;
   },
 
   addMapKeyframeAtCurrentTime: () => {

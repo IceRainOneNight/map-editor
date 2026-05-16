@@ -1,13 +1,16 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import { useLayerStore } from '../../store/layerStore';
 import { useEditStore } from '../../store/editStore';
 import { useBasemapStore } from '../../store/basemapStore';
+import { useTimelineStore } from '../../store/timelineStore';
 import { getBasemapConfig } from '../../utils/basemap';
 import { setMapRef } from '../../store/mapRef';
 import type { BasemapLayerItem } from '../../types/map';
 import { LINE_STYLE_DASHARRAY } from '../../types/layer';
+import TextOverlayRenderer from '../timeline/TextOverlayRenderer';
+import PathOverlayRenderer from '../timeline/PathOverlayRenderer';
 
 // ===== 辅助函数 =====
 function ensureFeatureId(feature: Feature, idx: number): string | number {
@@ -781,6 +784,8 @@ export default function MapView() {
           zIndex: 5,
         }}
       />
+      <TextOverlayRenderer />
+      <PathOverlayRenderer />
     </div>
   );
 }

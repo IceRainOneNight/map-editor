@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useEditStore } from '../../store/editStore';
 import { useLayerStore } from '../../store/layerStore';
+import { useTimelineStore } from '../../store/timelineStore';
 import type { LineStyle } from '../../types/layer';
 import { LINE_STYLE_LABELS } from '../../types/layer';
 
@@ -378,6 +379,28 @@ export default function AttributePanel() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* 路径动画（仅 LineString 要素） */}
+          {featType === 'LineString' && feature && (
+            <div style={{ marginTop: 12 }}>
+              <div className="attr-section-title">路径动画</div>
+              <button
+                className="attr-save-btn"
+                style={{ background: '#e67e22', color: '#fff' }}
+                onClick={() => {
+                  const geom = feature.geometry as any;
+                  const coords: [number, number][] = geom.coordinates;
+                  useTimelineStore.getState().addFeaturePathTrack(
+                    selectedLayerId!,
+                    selectedFeatureId!,
+                    coords
+                  );
+                }}
+              >
+                添加到路径动画
+              </button>
             </div>
           )}
 

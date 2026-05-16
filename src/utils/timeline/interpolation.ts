@@ -1,4 +1,4 @@
-import type { Keyframe, KeyframeTrack, EasingType, InterpolatedMapState, InterpolatedLayerState } from '../../types/timeline';
+import type { Keyframe, KeyframeTrack, EasingType, InterpolatedMapState, InterpolatedLayerState, InterpolatedTextState, InterpolatedPathState, PathTrackData } from '../../types/timeline';
 import { getMapRef } from '../../store/mapRef';
 
 /** 缓动函数映射 */
@@ -117,9 +117,13 @@ export function getStateAtTime(
 ): {
   mapState: InterpolatedMapState | null;
   layerStates: Map<string, InterpolatedLayerState>;
+  textStates: InterpolatedTextState[];
+  pathStates: InterpolatedPathState[];
 } {
   const layerStates = new Map<string, InterpolatedLayerState>();
   let mapState: InterpolatedMapState | null = null;
+  const textStates: InterpolatedTextState[] = [];
+  const pathStates: InterpolatedPathState[] = [];
 
   for (const track of tracks) {
     if (!track.visible) continue;
@@ -143,10 +147,90 @@ export function getStateAtTime(
           visible: state.visible ?? true,
         });
       }
+    } else if (track.type === 'text' && track.textData) {
+      const td = track.textData;
+      const localTime = time; // 文字轨道后期扩展 offset
+
+      // 检查是否在显示时间窗口内
+      if (localTime >= td.startOffset && localTime <= td.endOffset) {
+        const state = getTrackStateAtTime(track, time);
+        textStates.push({
+          content: td.content,
+          opacity: state?.opacity ?? 1,
+          color: state?.color ?? td.color,
+          scale: state?.textScale ?? 1,
+          positionType: td.positionType,
+          mapPosition: td.mapPosition,
+          screenPosition: td.screenPosition,
+          fontSize: td.fontSize,
+          fontFamily: td.fontFamily,
+          backgroundColor: td.backgroundColor || 'transparent',
+          backgroundOpacity: td.backgroundOpacity ?? 0,
+          alignment: td.alignment,
+        });
+      }
+    } else if (track.type === 'path' && track.pathData) {
+      const pd = track.pathData;
+      if (pd.coordinates.length < 2) continue;
+
+      const localTime = time; // 相对于轨道
+      const totalDuration = pd.pathDuration;
+      const progress = Math.max(0, Math.min(1, localTime / totalDuration));
+
+      // 路径插值
+      const markerPos = interpolatePathPosition(pd.coordinates, progress);
+      pathStates.push({
+        markerPosition: markerPos,
+        drawProgress: progress,
+        coordinates: pd.coordinates,
+        markerColor: pd.markerColor,
+        markerSize: pd.markerSize,
+        markerIcon: pd.markerIcon,
+        lineColor: pd.lineColor,
+        lineWidth: pd.lineWidth,
+        animType: pd.animType,
+      });
     }
   }
 
-  return { mapState, layerStates };
+  return { mapState, layerStates, textStates, pathStates };
+}
+
+/** 路径插值：根据进度 (0~1) 计算路径上的坐标点 */
+function interpolatePathPosition(
+  coords: [number, number][],
+  progress: number
+): [number, number] {
+  if (coords.length === 0) return [0, 0];
+  if (coords.length === 1) return coords[0];
+  if (progress <= 0) return coords[0];
+  if (progress >= 1) return coords[coords.length - 1];
+
+  // 计算总长度
+  let totalLength = 0;
+  const segLengths: number[] = [];
+  for (let i = 0; i < coords.length - 1; i++) {
+    const [x1, y1] = coords[i];
+    const [x2, y2] = coords[i + 1];
+    const d = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    segLengths.push(d);
+    totalLength += d;
+  }
+
+  const targetDist = progress * totalLength;
+  let accDist = 0;
+
+  for (let i = 0; i < segLengths.length; i++) {
+    if (accDist + segLengths[i] >= targetDist) {
+      const t = (targetDist - accDist) / segLengths[i];
+      const [x1, y1] = coords[i];
+      const [x2, y2] = coords[i + 1];
+      return [x1 + (x2 - x1) * t, y1 + (y2 - y1) * t];
+    }
+    accDist += segLengths[i];
+  }
+
+  return coords[coords.length - 1];
 }
 
 /** 捕获当前地图状态作为关键帧 */
@@ -173,7 +257,7 @@ export function captureCurrentMapState(): Omit<Keyframe, 'id' | 'time'> {
 
 /** 计算所有轨道的最大时长 */
 export function computeDuration(tracks: KeyframeTrack[]): number {
-  let maxTime = 10; // 最少 10 秒
+  let maxTime = 30; // 最少 30 秒
   for (const track of tracks) {
     // 关键帧最大时间
     if (track.keyframes.length > 0) {

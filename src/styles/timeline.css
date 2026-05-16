@@ -340,6 +340,302 @@
   background: rgba(155, 89, 182, 0.03);
 }
 
+/* Text track */
+.tl-track-text {
+  background: rgba(52, 152, 219, 0.04);
+}
+
+/* Path track */
+.tl-track-path {
+  background: rgba(231, 76, 60, 0.04);
+}
+
+/* ===== Text Track Preview ===== */
+.tl-text-preview {
+  background: rgba(52, 152, 219, 0.12);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 8px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.tl-text-content {
+  font-size: 11px;
+  color: #3498db;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tl-text-time {
+  font-size: 9px;
+  color: #888;
+}
+
+/* ===== Duration Input ===== */
+.tl-duration-input {
+  width: 48px;
+  height: 24px;
+  padding: 0 4px;
+  background: #383838;
+  color: #e0e0e0;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  outline: none;
+}
+
+.tl-duration-input:focus {
+  border-color: #8cb82a;
+}
+
+/* Hide spinner */
+.tl-duration-input::-webkit-outer-spin-button,
+.tl-duration-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ===== Text Track Editor Overlay ===== */
+.text-track-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.text-track-editor {
+  background: #2d2d2d;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  width: 420px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.text-track-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #4a4a4a;
+  font-weight: 600;
+  font-size: 14px;
+  color: #e0e0e0;
+}
+
+.tte-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tte-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e74c3c;
+}
+
+.tte-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tte-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tte-row label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+
+.tte-row textarea {
+  width: 100%;
+  padding: 6px 8px;
+  background: #383838;
+  color: #e0e0e0;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.tte-row textarea:focus {
+  border-color: #8cb82a;
+}
+
+.tte-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tte-btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.tte-btn {
+  height: 28px;
+  padding: 0 12px;
+  background: #383838;
+  color: #ccc;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.tte-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tte-btn.active {
+  background: rgba(140, 184, 42, 0.15);
+  border-color: #8cb82a;
+  color: #8cb82a;
+}
+
+.tte-val {
+  font-size: 11px;
+  color: #888;
+  min-width: 32px;
+  text-align: right;
+}
+
+.tte-input-sm {
+  width: 72px;
+  height: 28px;
+  padding: 0 6px;
+  background: #383838;
+  color: #e0e0e0;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  font-family: monospace;
+}
+
+.tte-input-sm:focus {
+  border-color: #8cb82a;
+}
+
+.tte-color {
+  width: 32px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+.tte-hex {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+}
+
+.tte-row-inline input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #4a4a4a;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  max-width: 100px;
+}
+
+.tte-row-inline input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8cb82a;
+  cursor: pointer;
+}
+
+.tte-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #4a4a4a;
+}
+
+.tte-btn-cancel {
+  height: 32px;
+  padding: 0 16px;
+  background: #383838;
+  color: #ccc;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tte-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tte-btn-confirm {
+  height: 32px;
+  padding: 0 16px;
+  background: #8cb82a;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tte-btn-confirm:hover {
+  opacity: 0.9;
+}
+
+.tte-btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .tl-track-volume {
   position: absolute;
   right: 8px;

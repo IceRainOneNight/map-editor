@@ -4,6 +4,7 @@ import { useLayerStore } from '../../store/layerStore';
 import { useTimelineStore } from '../../store/timelineStore';
 import type { LineStyle } from '../../types/layer';
 import { LINE_STYLE_LABELS } from '../../types/layer';
+import type { PathTrackData } from '../../types/timeline';
 
 const LINE_STYLES: LineStyle[] = ['solid', 'dashed', 'dash-dot'];
 
@@ -18,11 +19,19 @@ function detectGeomTypes(layer: { data: { features: any[] } }): Set<string> {
 
 type TabKey = 'props' | 'edit';
 
+const MARKER_ICON_LABELS: Record<string, string> = {
+  arrow: '箭头',
+  circle: '圆形',
+  diamond: '菱形',
+  pin: '图钉',
+};
+
 export default function AttributePanel() {
   const [activeTab, setActiveTab] = useState<TabKey>('props');
 
   const selectedLayerId = useEditStore((s) => s.selectedLayerId);
   const selectedFeatureId = useEditStore((s) => s.selectedFeatureId);
+  const selectedPathTrackId = useEditStore((s) => s.selectedPathTrackId);
   const nodeEditMode = useEditStore((s) => s.nodeEditMode);
   const setNodeEditMode = useEditStore((s) => s.setNodeEditMode);
   const setSelection = useEditStore((s) => s.setSelection);
@@ -31,18 +40,22 @@ export default function AttributePanel() {
   const updateLayerData = useLayerStore((s) => s.updateLayerData);
   const updateLayerProperties = useLayerStore((s) => s.updateLayerProperties);
 
+  const timelineTracks = useTimelineStore((s) => s.tracks);
+  const updatePathTrackData = useTimelineStore((s) => s.updatePathTrackData);
+
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const feature = selectedLayer?.data.features.find(
     (f) => f.id === selectedFeatureId || f.properties?._featureId === selectedFeatureId
   );
 
   const activeLayer = !feature ? layers.find((l) => l.id === activeLayerId) : null;
+  const selectedPathTrack = timelineTracks.find((t) => t.id === selectedPathTrackId && t.type === 'path');
 
   const [editingProps, setEditingProps] = useState<Record<string, any>>({});
   const [editingName, setEditingName] = useState('');
 
-  type PanelMode = 'empty' | 'layer' | 'feature';
-  const mode: PanelMode = feature ? 'feature' : activeLayer ? 'layer' : 'empty';
+  type PanelMode = 'empty' | 'layer' | 'feature' | 'path';
+  const mode: PanelMode = selectedPathTrack ? 'path' : feature ? 'feature' : activeLayer ? 'layer' : 'empty';
 
   // 要素属性编辑
   useEffect(() => {
@@ -89,8 +102,175 @@ export default function AttributePanel() {
     updateLayerProperties(activeLayer.id, { name: editingName.trim() });
   };
 
+  // ===== 路径动画属性渲染 =====
+  const renderPathProps = (pd: PathTrackData, trackId: string) => {
+    return (
+      <>
+        <div className="attr-section-title">动画类型</div>
+        <div className="attr-row">
+          <label className="attr-label">动画方式</label>
+          <select
+            className="attr-select"
+            value={pd.animType}
+            onChange={(e) => updatePathTrackData(trackId, { animType: e.target.value as PathTrackData['animType'] })}
+          >
+            <option value="marker">仅标记（箭头移动）</option>
+            <option value="draw">仅绘制（线条绘制）</option>
+            <option value="both">标记+绘制</option>
+          </select>
+        </div>
+
+        <div className="attr-section-title">标记样式</div>
+        <div className="attr-row">
+          <label className="attr-label">标记颜色</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="color"
+              value={pd.markerColor}
+              onChange={(e) => updatePathTrackData(trackId, { markerColor: e.target.value })}
+              style={{ width: 32, height: 32, border: 'none', cursor: 'pointer', padding: 0 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace' }}>{pd.markerColor}</span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">标记大小</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="range"
+              min="4" max="20" step="1"
+              value={pd.markerSize}
+              onChange={(e) => updatePathTrackData(trackId, { markerSize: Number(e.target.value) })}
+              style={{ flex: 1, maxWidth: 140 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace', minWidth: 24 }}>{pd.markerSize}px</span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">标记形状</label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['arrow', 'circle', 'diamond', 'pin'] as const).map((icon) => (
+              <button
+                key={icon}
+                onClick={() => updatePathTrackData(trackId, { markerIcon: icon })}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 12,
+                  border: `1px solid ${pd.markerIcon === icon ? pd.markerColor : '#ccc'}`,
+                  borderRadius: 4,
+                  background: pd.markerIcon === icon ? `${pd.markerColor}20` : '#fff',
+                  cursor: 'pointer',
+                  color: pd.markerIcon === icon ? pd.markerColor : '#666',
+                }}
+              >
+                {MARKER_ICON_LABELS[icon]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="attr-section-title">线条样式</div>
+        <div className="attr-row">
+          <label className="attr-label">线条颜色</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="color"
+              value={pd.lineColor}
+              onChange={(e) => updatePathTrackData(trackId, { lineColor: e.target.value })}
+              style={{ width: 32, height: 32, border: 'none', cursor: 'pointer', padding: 0 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace' }}>{pd.lineColor}</span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">线条宽度</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="range"
+              min="1" max="8" step="0.5"
+              value={pd.lineWidth}
+              onChange={(e) => updatePathTrackData(trackId, { lineWidth: Number(e.target.value) })}
+              style={{ flex: 1, maxWidth: 140 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace', minWidth: 24 }}>{pd.lineWidth}px</span>
+          </div>
+        </div>
+
+        <div className="attr-section-title">时间与进度</div>
+        <div className="attr-row">
+          <label className="attr-label">动画时长</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="number"
+              min="1" max="60" step="0.5"
+              value={pd.pathDuration}
+              onChange={(e) => updatePathTrackData(trackId, { pathDuration: Number(e.target.value) })}
+              style={{
+                width: 60, padding: '2px 6px', fontSize: 12,
+                background: '#2d2d2d', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4,
+              }}
+            />
+            <span style={{ fontSize: 12 }}>秒</span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">起始进度</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="range"
+              min="0" max="1" step="0.01"
+              value={pd.startProgress}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                updatePathTrackData(trackId, { startProgress: v });
+              }}
+              style={{ flex: 1, maxWidth: 140 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace', minWidth: 32 }}>
+              {Math.round(pd.startProgress * 100)}%
+            </span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">结束进度</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              type="range"
+              min="0" max="1" step="0.01"
+              value={pd.endProgress}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                updatePathTrackData(trackId, { endProgress: v });
+              }}
+              style={{ flex: 1, maxWidth: 140 }}
+            />
+            <span style={{ fontSize: 12, fontFamily: 'monospace', minWidth: 32 }}>
+              {Math.round(pd.endProgress * 100)}%
+            </span>
+          </div>
+        </div>
+
+        <div className="attr-row">
+          <label className="attr-label">路径点数</label>
+          <span style={{ fontSize: 12, color: '#999', padding: '4px 0' }}>
+            {pd.coordinates.length} 个坐标点
+          </span>
+        </div>
+      </>
+    );
+  };
+
   // ===== 渲染：属性选项卡 =====
   const renderPropsTab = () => {
+    if (mode === 'path' && selectedPathTrack?.pathData) {
+      return renderPathProps(selectedPathTrack.pathData, selectedPathTrack.id);
+    }
+
     if (mode === 'empty') {
       return (
         <div className="attr-empty">
@@ -519,7 +699,7 @@ export default function AttributePanel() {
   };
 
   // ===== 面板标题 =====
-  const panelTitle = mode === 'feature' ? '要素属性' : mode === 'layer' ? '图层属性' : '属性';
+  const panelTitle = mode === 'path' ? '路径动画' : mode === 'feature' ? '要素属性' : mode === 'layer' ? '图层属性' : '属性';
 
   return (
     <div className="attr-panel">
@@ -530,6 +710,9 @@ export default function AttributePanel() {
         )}
         {mode === 'layer' && (
           <span className="attr-type-badge">{activeLayer!.name}</span>
+        )}
+        {mode === 'path' && selectedPathTrack && (
+          <span className="attr-type-badge">{selectedPathTrack.name}</span>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { useTimelineStore } from '../../store/timelineStore';
+import { useEditStore } from '../../store/editStore';
 import { getStateAtTime } from '../../utils/timeline/interpolation';
 import { getMapRef } from '../../store/mapRef';
 import { useLayerStore } from '../../store/layerStore';
@@ -45,6 +46,8 @@ export default function TimelinePanel() {
   const recalcDuration = useTimelineStore((s) => s.recalcDuration);
 
   const layers = useLayerStore((s) => s.layers);
+  const selectedPathTrackId = useEditStore((s) => s.selectedPathTrackId);
+  const setSelectedPathTrackId = useEditStore((s) => s.setSelectedPathTrackId);
 
   // Text editor and path draw state
   const [showTextEditor, setShowTextEditor] = useState(false);
@@ -776,6 +779,12 @@ export default function TimelinePanel() {
                         <PathClip
                           track={track}
                           pxPerSec={pxPerSec}
+                          selected={selectedPathTrackId === track.id}
+                          onSelect={() => {
+                            setSelectedPathTrackId(
+                              selectedPathTrackId === track.id ? null : track.id
+                            );
+                          }}
                           updatePathTrackData={useTimelineStore.getState().updatePathTrackData}
                           setTrackStartTime={(t) => {
                             useTimelineStore.getState().setTrackStartTime?.(track.id, t);
@@ -891,15 +900,19 @@ function AudioWaveform({
   );
 }
 
-// ====== 路径片段组件（可拖拽/缩放） ======
+// ====== 路径片段组件（可拖拽/缩放，可点击选中） ======
 function PathClip({
   track,
   pxPerSec,
+  selected,
+  onSelect,
   updatePathTrackData,
   setTrackStartTime,
 }: {
   track: import('../../types/timeline').KeyframeTrack;
   pxPerSec: number;
+  selected: boolean;
+  onSelect: () => void;
   updatePathTrackData: (trackId: string, data: Partial<import('../../types/timeline').PathTrackData>) => void;
   setTrackStartTime: (startTime: number) => void;
 }) {
@@ -908,18 +921,21 @@ function PathClip({
   const clipWidth = pd.pathDuration * pxPerSec;
   const [resizing, setResizing] = useState<'left' | 'right' | 'move' | null>(null);
   const dragStartRef = useRef({ mouseX: 0, startTime: 0, duration: 0 });
+  const dragDistRef = useRef(0);
 
   const handleMouseDown = (e: React.MouseEvent, edge: 'left' | 'right' | 'move') => {
     e.stopPropagation();
     e.preventDefault();
     setResizing(edge);
     dragStartRef.current = { mouseX: e.clientX, startTime: track.startTime, duration: pd.pathDuration };
+    dragDistRef.current = 0;
   };
 
   useEffect(() => {
     if (!resizing) return;
     const onMouseMove = (e: MouseEvent) => {
       const dx = (e.clientX - dragStartRef.current.mouseX) / pxPerSec;
+      dragDistRef.current += Math.abs(dx);
       const { startTime, duration } = dragStartRef.current;
       if (resizing === 'move') {
         setTrackStartTime(Math.max(0, startTime + dx));
@@ -934,18 +950,27 @@ function PathClip({
         updatePathTrackData(track.id, { pathDuration: Math.max(1, duration + dx) });
       }
     };
-    const onMouseUp = () => setResizing(null);
+    const onMouseUp = () => {
+      // 移动距离小于阈值视为点击
+      if (dragDistRef.current < 2 && Math.abs(dragDistRef.current) < 2) {
+        onSelect();
+      }
+      setResizing(null);
+    };
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-  }, [resizing, pxPerSec, track.id, setTrackStartTime, updatePathTrackData]);
+  }, [resizing, pxPerSec, track.id, setTrackStartTime, updatePathTrackData, onSelect]);
 
   if (clipWidth <= 0) return null;
   return (
-    <div className="tl-path-clip" style={{ position: 'absolute', left: clipLeft, width: clipWidth, top: 4, bottom: 4 }}>
+    <div
+      className={`tl-path-clip${selected ? ' tl-path-clip-selected' : ''}`}
+      style={{ position: 'absolute', left: clipLeft, width: clipWidth, top: 4, bottom: 4 }}
+    >
       <div className="tl-path-edge tl-path-edge-left" onMouseDown={(e) => handleMouseDown(e, 'left')} />
       <div className="tl-path-body" onMouseDown={(e) => handleMouseDown(e, 'move')} style={{ cursor: resizing === 'move' ? 'grabbing' : 'grab' }}>
         <span className="tl-path-clip-name">{track.name}</span>

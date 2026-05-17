@@ -9,6 +9,22 @@ export type GeometryType = 'Point' | 'LineString' | 'Polygon' | 'MultiPoint' | '
 /** 线段样式 */
 export type LineStyle = 'solid' | 'dashed' | 'dash-dot';
 
+/** 交战区域强度 */
+export type BattleIntensity = 'low' | 'medium' | 'high';
+
+/** 交战区域元数据 */
+export interface BattleZoneMeta {
+  name: string;
+  intensity: BattleIntensity;
+}
+
+/** 交战区域样式预设 */
+export const BATTLE_ZONE_STYLES: Record<BattleIntensity, { color: string; outlineColor: string; fillOpacity: number; outlineWidth: number; lineStyle: LineStyle }> = {
+  low:      { color: '#ffd43b', outlineColor: '#f0a500', fillOpacity: 0.10, outlineWidth: 2, lineStyle: 'dashed' },
+  medium:   { color: '#ff922b', outlineColor: '#e67700', fillOpacity: 0.15, outlineWidth: 2.5, lineStyle: 'dashed' },
+  high:     { color: '#ff4444', outlineColor: '#cc0000', fillOpacity: 0.18, outlineWidth: 3, lineStyle: 'dashed' },
+};
+
 /** 图层分组 */
 export interface LayerGroup {
   id: string;
@@ -53,6 +69,8 @@ export interface Layer {
   outlineColor: string;
   /** 面边界线宽（像素），默认 2 */
   outlineWidth: number;
+  /** 交战区域元数据（可选，仅 battleZone 工具创建的图层） */
+  battleZone?: BattleZoneMeta;
 }
 
 /** 图层创建参数 */
@@ -67,6 +85,7 @@ export interface LayerCreateParams {
   fillOpacity?: number;
   outlineColor?: string;
   outlineWidth?: number;
+  battleZone?: BattleZoneMeta;
 }
 
 /** 图层属性更新参数 */

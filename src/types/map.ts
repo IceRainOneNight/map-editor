@@ -1,6 +1,6 @@
 /** 底图类型（保留兼容） */
 export type BasemapName = 'bing' | 'amap';
-export type BasemapStyle = 'road' | 'satellite';
+export type BasemapStyle = 'road' | 'satellite' | 'plot' | 'labels' | 'plot-labels' | 'plain';
 
 /** 底图源配置 */
 export interface BasemapSource {
@@ -11,7 +11,7 @@ export interface BasemapSource {
 
 /** 底图图层条目（多底图叠加系统） */
 export type BasemapProvider = 'amap' | 'bing';
-export type BasemapTileStyle = 'road' | 'satellite';
+export type BasemapTileStyle = 'road' | 'satellite' | 'plot' | 'labels' | 'plot-labels' | 'plain';
 
 export interface BasemapLayerItem {
   id: string;

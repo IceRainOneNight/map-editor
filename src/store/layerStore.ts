@@ -60,6 +60,7 @@ export const useLayerStore = create<LayerStore>((set, get) => ({
       fillOpacity: params.fillOpacity ?? 0.3,
       outlineColor: params.outlineColor || color,
       outlineWidth: params.outlineWidth ?? 2,
+      battleZone: params.battleZone,
     };
     set((s) => ({ layers: [...s.layers, layer] }));
     return id;

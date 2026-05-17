@@ -65,16 +65,83 @@ const AMAP_SATELLITE: BasemapConfig = {
   attribution: '\u00a9 高德地图',
 };
 
-const basemapConfigs: Record<BasemapName, Record<BasemapStyle, BasemapConfig>> = {
+// ---- ltype 分层图层（style=7 + wprd 域名） ----
+const AMAP_PLOT: BasemapConfig = {
+  name: 'amap-plot',
+  style: 'plot',
+  tiles: [
+    'https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=1&x={x}&y={y}&z={z}',
+    'https://wprd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=1&x={x}&y={y}&z={z}',
+    'https://wprd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=1&x={x}&y={y}&z={z}',
+    'https://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=1&x={x}&y={y}&z={z}',
+  ],
+  minZoom: 1,
+  maxZoom: 18,
+  attribution: '\u00a9 高德地图',
+};
+
+const AMAP_LABELS: BasemapConfig = {
+  name: 'amap-labels',
+  style: 'labels',
+  tiles: [
+    'https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=4&x={x}&y={y}&z={z}',
+    'https://wprd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=4&x={x}&y={y}&z={z}',
+    'https://wprd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=4&x={x}&y={y}&z={z}',
+    'https://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=4&x={x}&y={y}&z={z}',
+  ],
+  minZoom: 1,
+  maxZoom: 18,
+  attribution: '\u00a9 高德地图',
+};
+
+const AMAP_PLOT_LABELS: BasemapConfig = {
+  name: 'amap-plot-labels',
+  style: 'plot-labels',
+  tiles: [
+    'https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=5&x={x}&y={y}&z={z}',
+    'https://wprd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=5&x={x}&y={y}&z={z}',
+    'https://wprd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=5&x={x}&y={y}&z={z}',
+    'https://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=5&x={x}&y={y}&z={z}',
+  ],
+  minZoom: 1,
+  maxZoom: 18,
+  attribution: '\u00a9 高德地图',
+};
+
+const AMAP_PLAIN: BasemapConfig = {
+  name: 'amap-plain',
+  style: 'plain',
+  tiles: [
+    'https://wprd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=8&x={x}&y={y}&z={z}',
+    'https://wprd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=8&x={x}&y={y}&z={z}',
+    'https://wprd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=8&x={x}&y={y}&z={z}',
+    'https://wprd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&ltype=8&x={x}&y={y}&z={z}',
+  ],
+  minZoom: 1,
+  maxZoom: 18,
+  attribution: '\u00a9 高德地图',
+};
+
+const basemapConfigs: Record<BasemapName, Partial<Record<BasemapStyle, BasemapConfig>>> = {
   bing: { road: BING_ROAD, satellite: BING_SATELLITE },
-  amap: { road: AMAP_NORMAL, satellite: AMAP_SATELLITE },
+  amap: {
+    road: AMAP_NORMAL,
+    satellite: AMAP_SATELLITE,
+    plot: AMAP_PLOT,
+    labels: AMAP_LABELS,
+    'plot-labels': AMAP_PLOT_LABELS,
+    plain: AMAP_PLAIN,
+  },
 };
 
 export function getBasemapConfig(
   basemap: BasemapName,
   style: BasemapStyle
 ): BasemapConfig {
-  return basemapConfigs[basemap][style];
+  const config = basemapConfigs[basemap]?.[style];
+  if (config) return config;
+  // fallback to amap road
+  return AMAP_NORMAL;
 }
 
 export const BASEMAP_OPTIONS: {
@@ -96,6 +163,10 @@ export const BASEMAP_OPTIONS: {
     styles: [
       { id: 'road', label: '标准' },
       { id: 'satellite', label: '卫星' },
+      { id: 'plot', label: '地块' },
+      { id: 'labels', label: '注记' },
+      { id: 'plot-labels', label: '地块+注记' },
+      { id: 'plain', label: '纯色底图' },
     ],
   },
 ];

@@ -15,6 +15,7 @@ interface EditStoreState {
   drawCoords: [number, number][];
   selectedLayerId: string | null;
   selectedFeatureId: string | number | null;
+  selectedPathTrackId: string | null;
   nodeEditMode: boolean;
   lastSnapshot: EditSnapshot | null;
 
@@ -27,6 +28,7 @@ interface EditStoreState {
   insertDrawCoordBeforeLast: (coord: [number, number]) => void;
   setSelection: (layerId: string | null, featureId: string | number | null) => void;
   clearSelection: () => void;
+  setSelectedPathTrackId: (trackId: string | null) => void;
   setNodeEditMode: (on: boolean) => void;
   setLastSnapshot: (snap: EditSnapshot) => void;
 }
@@ -39,6 +41,7 @@ export const useEditStore = create<EditStoreState>()(
       drawCoords: [],
       selectedLayerId: null,
       selectedFeatureId: null,
+      selectedPathTrackId: null,
       nodeEditMode: false,
       lastSnapshot: null,
 
@@ -76,6 +79,8 @@ export const useEditStore = create<EditStoreState>()(
         set({ selectedLayerId: layerId, selectedFeatureId: featureId }),
       clearSelection: () =>
         set({ selectedLayerId: null, selectedFeatureId: null }),
+      setSelectedPathTrackId: (trackId) =>
+        set({ selectedPathTrackId: trackId }),
       setNodeEditMode: (on) => set({ nodeEditMode: on }),
       setLastSnapshot: (snap) => set({ lastSnapshot: snap }),
     }),

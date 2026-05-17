@@ -7,6 +7,7 @@ const TOOLS: { id: EditTool; label: string; icon: string; shortcut: string }[] =
   { id: 'point', label: '点', icon: '●', shortcut: 'P' },
   { id: 'line', label: '线', icon: '╱', shortcut: 'L' },
   { id: 'polygon', label: '面', icon: '⬠', shortcut: 'G' },
+  { id: 'battleZone', label: '交战区域', icon: '⚔️', shortcut: 'B' },
 ];
 
 export default function DrawToolbar() {

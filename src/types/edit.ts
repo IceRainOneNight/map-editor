@@ -1,5 +1,5 @@
 /** 编辑工具 */
-export type EditTool = 'select' | 'point' | 'line' | 'polygon' | null;
+export type EditTool = 'select' | 'point' | 'line' | 'polygon' | 'battleZone' | null;
 
 /** 绘制状态 */
 export type DrawState = 'idle' | 'drawing';

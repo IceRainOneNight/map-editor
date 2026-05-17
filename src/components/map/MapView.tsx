@@ -227,7 +227,9 @@ export default function MapView() {
           // 已存在：增量更新数据
           try {
             (map.getSource(srcId) as maplibregl.GeoJSONSource).setData(layer.data);
-          } catch {}
+          } catch (err) {
+            console.warn(`[MapView] setData 失败 (${srcId}):`, err);
+          }
           // 更新 paint 属性
           const dash = LINE_STYLE_DASHARRAY[layer.lineStyle] || [];
           try { map.setPaintProperty(layId, 'fill-color', layer.color); } catch {}
@@ -450,7 +452,14 @@ export default function MapView() {
             }
             return newFeat;
           });
-          updateLayerData(curLayer.id, { ...curLayer.data, features: updatedFeatures });
+          const updatedData = { ...curLayer.data, features: updatedFeatures };
+          updateLayerData(curLayer.id, updatedData);
+          // 直接同步更新地图 GeoJSON 源，绕过 React 异步渲染延迟，
+          // 确保拖拽节点时线段实时跟随刷新
+          const srcId = `layer-${curLayer.id}`;
+          try {
+            (map.getSource(srcId) as maplibregl.GeoJSONSource).setData(updatedData);
+          } catch {}
         }
       };
 

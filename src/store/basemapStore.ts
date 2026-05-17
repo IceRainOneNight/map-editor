@@ -18,6 +18,10 @@ const PROVIDER_LABELS: Record<string, string> = {
 const STYLE_LABELS: Record<string, string> = {
   road: '标准',
   satellite: '卫星',
+  plot: '地块',
+  labels: '注记',
+  'plot-labels': '地块+注记',
+  plain: '纯色底图',
 };
 
 let bidCounter = 0;

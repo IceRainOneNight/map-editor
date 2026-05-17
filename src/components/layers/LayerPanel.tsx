@@ -13,6 +13,10 @@ const PROVIDER_OPTIONS: { value: BasemapProvider; label: string; styles: { value
     styles: [
       { value: 'road', label: '标准' },
       { value: 'satellite', label: '卫星' },
+      { value: 'plot', label: '地块' },
+      { value: 'labels', label: '注记' },
+      { value: 'plot-labels', label: '地块+注记' },
+      { value: 'plain', label: '纯色底图' },
     ],
   },
   {
